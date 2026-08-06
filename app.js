@@ -1,148 +1,191 @@
-const STAT=[
-  ['strength','Сила','💪','#fb7185'],
-  ['health','Здоровье','♥','#4ade80'],
-  ['intellect','Интеллект','◈','#60a5fa'],
-  ['discipline','Дисциплина','◎','#fbbf24'],
-  ['skills','Навыки','✦','#a78bfa'],
-  ['wealth','Финансы','₸','#4de0ff'],
-  ['faith','Вера','🕌','#8b5cf6'],
-  ['knowledge','Знания','📚','#60a5fb']
+const STAT = [
+  ['strength', 'Сила', '💪', '#fb7185'],
+  ['health', 'Здоровье', '♥', '#4ade80'],
+  ['intellect', 'Интеллект', '◈', '#60a5fa'],
+  ['discipline', 'Дисциплина', '◎', '#fbbf24'],
+  ['skills', 'Навыки', '✦', '#a78bfa'],
+  ['wealth', 'Финансы', '₸', '#4de0ff'],
+  ['faith', 'Вера', '🕌', '#8b5cf6'],
+  ['knowledge', 'Знания', '📚', '#60a5fb']
 ];
 
-const RANKS=[
-  ['E',1,'#94a3b8','Начинающий охотник'],
-  ['D',5,'#4ade80','Уверенный охотник'],
-  ['C',10,'#60a5fa','Опытный охотник'],
-  ['B',15,'#a78bea','Элитный охотник'],
-  ['A',20,'#fbbf24','Мастер'],
-  ['S',30,'#f43f5e','Легенда']
+const RANKS = [
+  ['E', 1, '#94a3b8', 'Новичок. Только начинает свой путь, не имеет опыта и сражается голыми руками.'],
+  ['EE', 2, '#a8b3c2', 'Получил первое простое оружие и начинает осваивать основы боя.'],
+  ['EEE', 3, '#cbd5e1', 'Приобрёл деревянный меч и научился побеждать слабых противников.'],
+  ['D', 5, '#4ade80', 'Настоящий ученик воина. Получил первую броню и стал увереннее в бою.'],
+  ['DD', 7, '#22c55e', 'Хорошо владеет мечом и способен противостоять опытным врагам.'],
+  ['DDD', 9, '#16a34a', 'Полностью освоил базовую подготовку. Готов к серьёзным испытаниям.'],
+  ['C', 12, '#60a5fa', 'Опытный воин. Использует качественную экипировку и уверенно побеждает большинство противников.'],
+  ['CC', 15, '#3b82f6', 'Элитный боец. Отличается высокой выносливостью, техникой и дисциплиной.'],
+  ['CCC', 18, '#2563eb', 'Один из лучших воинов своего поколения. Его навыки вызывают уважение.'],
+  ['B', 22, '#a78bfa', 'Великий воин. Освоил особые техники и значительно превосходит обычных бойцов.'],
+  ['BB', 26, '#8b5cf6', 'Легендарный чемпион. Его сила и мастерство известны далеко за пределами своего региона.'],
+  ['BBB', 30, '#7c3aed', 'Абсолютный мастер. Владеет редкими способностями и почти не знает равных среди людей.'],
+  ['A', 35, '#fbbf24', 'Герой. Символ силы, мужества и лидерства.'],
+  ['AA', 40, '#f59e0b', 'Живая легенда. Его имя известно во многих землях, а способности поражают даже мастеров.'],
+  ['AAA', 45, '#d97706', 'Мифический герой. Его возможности кажутся невозможными для обычного человека.'],
+  ['S', 50, '#fb7185', 'Эпический воин. Обладает невероятной силой, скоростью и контролем энергии.'],
+  ['SS', 55, '#f43f5e', 'Высшее воплощение мастерства. Способен менять ход великих битв в одиночку.'],
+  ['SSS', 60, '#e11d48', 'Абсолютная вершина человеческого потенциала. Идеал силы, техники, опыта и воли. Практически недостижимый уровень для большинства.']
 ];
 
-const seed={
-  name:'Охотник',
-  streak:0,
-  lastDay:'',
-  stats:Object.fromEntries(STAT.map(([id])=>[id,0])),
-  quests:[
-    {id:1,title:'Выпить стакан воды',stat:'health',xp:10,done:false},
-    {id:2,title:'Сделать зарядку 10 минут',stat:'strength',xp:15,done:false},
-    {id:3,title:'Прочитать 10 страниц',stat:'intellect',xp:15,done:false}
+const seed = {
+  name: 'Охотник',
+  streak: 0,
+  lastDay: '',
+  stats: Object.fromEntries(STAT.map(([id]) => [id, 0])),
+  quests: [
+    { id: 1, title: 'Выпить стакан воды', stat: 'health', xp: 10, done: false },
+    { id: 2, title: 'Сделать зарядку 10 минут', stat: 'strength', xp: 15, done: false },
+    { id: 3, title: 'Прочитать 10 страниц', stat: 'intellect', xp: 15, done: false }
   ],
-  tasks:[],
-  schedule:[],
-  money:[],
-  photos:{avatar:null,before:null,after:null}
+  tasks: [],
+  schedule: [],
+  money: [],
+  photos: { avatar: null, before: null, after: null }
 };
 
-let db=JSON.parse(localStorage.getItem('levelup-data')||'null')||structuredClone(seed);
-db.photos??={avatar:null,before:null,after:null};
-let modalType='',photoTarget='';
+let db = JSON.parse(localStorage.getItem('levelup-data') || 'null') || structuredClone(seed);
+db.photos ??= { avatar: null, before: null, after: null };
+let modalType = '', photoTarget = '';
 
-const $=s=>document.querySelector(s);
-const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
 
-function save(){localStorage.setItem('levelup-data',JSON.stringify(db))}
-function today(){return new Date().toISOString().slice(0,10)}
-function xp(){return Object.values(db.stats).reduce((a,b)=>a+b,0)}
-function level(){return Math.floor(xp()/100)+1}
-function rank(){return [...RANKS].reverse().find(r=>level()>=r[1])}
+function save() { localStorage.setItem('levelup-data', JSON.stringify(db)); }
+function today() { return new Date().toISOString().slice(0, 10); }
+function xp() { return Object.values(db.stats).reduce((a, b) => a + b, 0); }
+function level() { return Math.floor(xp() / 100) + 1; }
+function rank() { return [...RANKS].reverse().find(r => level() >= r[1]); }
 
-function resetDay(){
-  let d=today();
-  if(db.lastDay&&db.lastDay!==d){
-    let y=new Date(Date.now()-864e5).toISOString().slice(0,10);
-    db.streak=db.lastDay===y&&db.quests.some(q=>q.done)?db.streak+1:0;
-    db.quests.forEach(q=>q.done=false);
-    db.tasks.forEach(q=>q.done=false);
-    db.lastDay=d;
+function resetDay() {
+  let d = today();
+  if (db.lastDay && db.lastDay !== d) {
+    let y = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+    db.streak = db.lastDay === y && db.quests.some(q => q.done) ? db.streak + 1 : 0;
+    db.quests.forEach(q => q.done = false);
+    db.tasks.forEach(q => q.done = false);
+    db.lastDay = d;
     save();
   }
-  if(!db.lastDay){
-    db.lastDay=d;
+  if (!db.lastDay) {
+    db.lastDay = d;
     save();
   }
 }
 
-function render(){
-  resetDay();
-  let l=level(), r=rank();
-  let inM=db.money.filter(x=>x.type==='income').reduce((a,x)=>a+x.amount,0);
-  let outM=db.money.filter(x=>x.type==='expense').reduce((a,x)=>a+x.amount,0);
+function compressImage(file, maxSize = 900, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Не удалось прочитать файл'));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error('Не удалось открыть изображение'));
+      image.onload = () => {
+        let width = image.width;
+        let height = image.height;
+        if (width > height && width > maxSize) {
+          height = Math.round(height * maxSize / width);
+          width = maxSize;
+        } else if (height > maxSize) {
+          width = Math.round(width * maxSize / height);
+          height = maxSize;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext('2d');
+        context.fillStyle = '#070b16';
+        context.fillRect(0, 0, width, height);
+        context.drawImage(image, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
-  $('#dateLabel').textContent=new Intl.DateTimeFormat('ru-RU',{weekday:'long',day:'numeric',month:'long'}).format(new Date());
-  $('#heroName').textContent=db.name;
-  $('#level').textContent=l;
-  $('#xpLabel').textContent=`${xp()%100} / 100 XP`;
-  $('#xpBar').style.width=`${xp()%100}%`;
-  $('#rankBadge').textContent=r[0];
-  $('#rankBadge').style.cssText=`border-color:${r[2]};color:${r[2]};box-shadow:0 0 20px ${r[2]}55`;
-  $('#rankText').textContent=r[3];
-  $('#streak').textContent=db.streak;
-  $('#streakSmall').textContent=db.streak;
-  $('#questCount').textContent=`${db.quests.filter(x=>x.done).length} / ${db.quests.length}`;
-  $('#balance').textContent=fmt(inM-outM);
-  $('#bigBalance').textContent=fmt(inM-outM);
-  $('#income').textContent=`Доходы: ${fmt(inM)}`;
-  $('#expense').textContent=`Расходы: ${fmt(outM)}`;
+function setPhotoElement(imageSelector, fallbackSelector, photo) {
+  const image = $(imageSelector);
+  const fallback = $(fallbackSelector);
+  if (!image || !fallback) return;
+  if (photo) {
+    image.src = photo;
+    image.hidden = false;
+    fallback.hidden = true;
+  } else {
+    image.removeAttribute('src');
+    image.hidden = true;
+    fallback.hidden = false;
+  }
+}
 
-  $('#questList').innerHTML=db.quests.length
-    ? db.quests.map(q=>item(q,`<span class="tag">${STAT.find(s=>s[0]===q.stat)?.[1]||'Общее'} · +${q.xp} XP</span>`,'quest')).join('')
-    : '<p class="item-sub">Квестов пока нет — добавь первый.</p>';
+function renderPhotos() {
+  setPhotoElement('#avatarImage', '#avatarFallback', db.photos.avatar);
+  setPhotoElement('#characterImage', '#characterFallback', db.photos.avatar);
 
-  $('#taskList').innerHTML=db.tasks.length
-    ? db.tasks.map(q=>item(q,'<span class="tag">Задача</span>','task')).join('')
-    : '<p class="item-sub">Выбери до 3 главных задач.</p>';
+  const photoGrid = $('#photoGrid');
+  if (!photoGrid) return;
+  photoGrid.innerHTML = `
+    ${photoCard('before', 'До', db.photos.before)}
+    ${photoCard('after', 'После', db.photos.after)}
+  `;
+}
 
-  $('#scheduleList').innerHTML=db.schedule.length
-    ? db.schedule.sort((a,b)=>a.time.localeCompare(b.time)).map(q=>`<article class="item"><b class="tag">${q.time}</b><div class="item-main"><div class="item-title">${esc(q.title)}</div></div><button class="delete" data-del="schedule" data-id="${q.id}">×</button></article>`).join('')
-    : '<p class="item-sub">Запланируй время для важных дел.</p>';
-
-  $('#moneyList').innerHTML=db.money.length
-    ? db.money.slice().reverse().map(m=>`<article class="item"><b class="${m.type}">${m.type==='income'?'+':'−'} ${fmt(m.amount)}</b><div class="item-main"><div class="item-title">${esc(m.title)}</div></div><button class="delete" data-del="money" data-id="${m.id}">×</button></article>`).join('')
-    : '<p class="item-sub">Добавй доходы и расходы за месяц.</p>';
-
-  $('#statGrid').innerHTML=STAT.map(s=>{
-    let v=db.stats[s[0]],lv=Math.floor(v/100)+1;
-    return `<article class="stat panel"><div class="stat-head"><b>${s[2]} ${s[1]}</b><span>${lv} ур.</span></div><div class="progress"><i style="width:${v%100}%;background:${s[3]}"></i></div><small>${v%100} / 100 XP</small></article>`
-  }).join('');
-
-  renderAscension(r,l);
-  renderLibrary();
+function photoCard(type, title, photo) {
+  return `
+    <article class="panel photo-card">
+      <div class="photo-preview">
+        ${photo ? `<img src="${photo}" alt="Фотография ${esc(title)}">` : '<span>📷</span>'}
+      </div>
+      <h3>${esc(title)}</h3>
+      <button type="button" class="photo-button" data-photo="${type}">
+        ${photo ? 'Изменить фото' : 'Добавить фото'}
+      </button>
+      ${photo ? `<button type="button" class="photo-remove" data-remove-photo="${type}">Удалить</button>` : ''}
+    </article>
+  `;
 }
 
 function renderAscension(currentRank, level) {
   const path = $('#rankPath');
   if (!path) return;
-  
-  path.innerHTML = RANKS.map(([rank, reqLevel, color, name]) => {
-    const isActive = level >= reqLevel;
-    const isCurrent = currentRank[0] === rank;
+  path.innerHTML = RANKS.map(([rankName, reqLevel, color, description]) => {
+    const isUnlocked = level >= reqLevel;
+    const isCurrent = currentRank[0] === rankName;
     return `
-      <div class="rank-step ${isActive ? 'active' : ''} ${isCurrent ? 'current' : ''}">
-        <div class="rank-letter" style="color: ${color}">${rank}</div>
+      <article class="rank-step ${isUnlocked ? 'active' : 'locked'} ${isCurrent ? 'current' : ''}" style="--rank-color:${color}">
+        <div class="rank-letter">${rankName}</div>
         <div class="rank-info">
-          <div class="rank-name" style="color: ${isCurrent ? color : 'inherit'}">${name}</div>
-          <div class="rank-req">Уровень ${reqLevel}+</div>
+          <div class="rank-title-row">
+            <div>
+              <div class="rank-name">Ранг ${rankName}</div>
+              <div class="rank-req">${isUnlocked ? 'Открыт' : 'Откроется'} на уровне ${reqLevel}</div>
+            </div>
+            ${isCurrent ? '<span class="current-label">Текущий</span>' : ''}
+          </div>
+          <details class="rank-details">
+            <summary>Подробнее</summary>
+            <p>${esc(description)}</p>
+          </details>
         </div>
-      </div>
+      </article>
     `;
   }).join('');
-  
   $('#characterRank').textContent = currentRank[0];
   $('#characterLevel').textContent = level;
   $('#characterDescription').textContent = currentRank[3];
 }
 
-function renderLibrary(){
+function renderLibrary() {
   const root = $('#libraryList');
-  if(!root || typeof LIBRARY === 'undefined') return;
-  root.innerHTML = Object.entries(LIBRARY).map(([key,group]) => `
+  if (!root || typeof LIBRARY === 'undefined') return;
+  root.innerHTML = Object.entries(LIBRARY).map(([key, group]) => `
     <article class="panel library-group">
-      <div class="library-head">
-        <b>${group.title}</b>
-        <span>${group.label}</span>
-      </div>
-      <div>${group.items.slice(0,5).map((item,i) => preset(key,i,item)).join('')}</div>
+      <div class="library-head"><b>${group.title}</b><span>${group.label}</span></div>
+      <div>${group.items.slice(0, 5).map((item, i) => preset(key, i, item)).join('')}</div>
       ${group.items.length > 5 ? `<button class="show-more" data-show="${key}">Показать все ${group.items.length}</button>` : ''}
     </article>
   `).join('');
@@ -151,131 +194,111 @@ function renderLibrary(){
 function preset(group, index, item) {
   return `
     <div class="preset-wrap">
-      <div class="preset">
-        <span class="preset-title">${esc(item.title)}</span>
-        <button data-add-preset="${group}" data-index="${index}">+ Добавить</button>
-      </div>
-      <details class="preset-details">
-        <summary>Подробнее</summary>
-        <p><b>Как:</b> ${esc(item.how)}</p>
-        <p><b>Зачем:</b> ${esc(item.why)}</p>
-        <p><b>Долгосрочно:</b> ${esc(item.long)}</p>
-        <small>${esc(item.source)}</small>
-      </details>
+      <div class="preset"><span class="preset-title">${esc(item.title)}</span><button data-add-preset="${group}" data-index="${index}">+ Добавить</button></div>
+      <details class="preset-details"><summary>Подробнее</summary><p><b>Как:</b> ${esc(item.how)}</p><p><b>Зачем:</b> ${esc(item.why)}</p><p><b>Долгосрочно:</b> ${esc(item.long)}</p><small>${esc(item.source)}</small></details>
     </div>
   `;
 }
 
-function showGroup(key){
+function showGroup(key) {
   const group = LIBRARY[key];
   const card = $(`[data-show="${key}"]`)?.closest('.library-group');
-  if(!card) return;
-  card.querySelector('div:nth-child(2)').innerHTML = group.items.map((item,i) => preset(key,i,item)).join('');
+  if (!card) return;
+  card.querySelector('div:nth-child(2)').innerHTML = group.items.map((item, i) => preset(key, i, item)).join('');
   card.querySelector('[data-show]')?.remove();
 }
 
-function item(q, side, type){
+function item(q, side, type) {
   return `
-    <article class="item ${q.done?'done':''}">
-      <button class="check" data-toggle="${type}" data-id="${q.id}">${q.done?'✓':''}</button>
-      <div class="item-main">
-        <div class="item-title">${esc(q.title)}</div>
-      </div>
+    <article class="item ${q.done ? 'done' : ''}">
+      <button class="check" data-toggle="${type}" data-id="${q.id}">${q.done ? '✓' : ''}</button>
+      <div class="item-main"><div class="item-title">${esc(q.title)}</div></div>
       ${side}
       <button class="delete" data-del="${type}" data-id="${q.id}">×</button>
     </article>
   `;
 }
 
-function fmt(n){
+function fmt(n) {
   return new Intl.NumberFormat('ru-RU').format(n) + ' ₸';
 }
 
-function collection(type){
-  return {quest: 'quests', task: 'tasks', schedule: 'schedule', money: 'money'}[type];
+function collection(type) {
+  return { quest: 'quests', task: 'tasks', schedule: 'schedule', money: 'money' }[type];
 }
 
-function open(type){
+function open(type) {
   modalType = type;
-  const title = {
+  $('#modalTitle').textContent = {
     quest: 'Новый квест',
     task: 'Новая задача',
     schedule: 'Событие в расписании',
     money: 'Финансовая операция'
   }[type];
-  
-  $('#modalTitle').textContent = title;
   let f = '<label>Название<input name="title" required maxlength="60" autofocus></label>';
-  
-  if(type === 'quest') {
-    f += '<label>Характеристика<select name="stat">' + STAT.map(s => `<option value="${s[0]}">${s[1]}</option>`).join('') + '</select></label>';
-    f += '<label>Опыт за квест<input name="xp" type="number" min="1" value="15"></label>';
-  }
-  
-  if(type === 'schedule') {
-    f = '<label>Время<input name="time" type="time" required value="09:00"></label>' + f;
-  }
-  
-  if(type === 'money') {
-    f += '<label>Тип<select name="type"><option value="expense">Расход</option><option value="income">Доход</option></select></label>';
-    f += '<label>Сумма, ₸<input name="amount" type="number" min="1" required></label>';
-  }
-  
+  if (type === 'quest') f += '<label>Характеристика<select name="stat">' + STAT.map(s => `<option value="${s[0]}">${s[1]}</option>`).join('') + '</select></label><label>Опыт за квест<input name="xp" type="number" min="1" value="15"></label>';
+  if (type === 'schedule') f = '<label>Время<input name="time" type="time" required value="09:00"></label>' + f;
+  if (type === 'money') f += '<label>Тип<select name="type"><option value="expense">Расход</option><option value="income">Доход</option></select></label><label>Сумма, ₸<input name="amount" type="number" min="1" required></label>';
   $('#formFields').innerHTML = f;
   $('#modal').showModal();
 }
 
 document.addEventListener('click', e => {
   const tab = e.target.closest('[data-page]');
-  if(tab) {
+  if (tab) {
     document.querySelectorAll('.tabs button, .page').forEach(x => x.classList.remove('active'));
     tab.classList.add('active');
     $('#' + tab.dataset.page).classList.add('active');
   }
-  
   const op = e.target.closest('[data-open]');
-  if(op) open(op.dataset.open);
-  
+  if (op) open(op.dataset.open);
   const more = e.target.closest('[data-show]');
-  if(more) showGroup(more.dataset.show);
-  
+  if (more) showGroup(more.dataset.show);
   const presetBtn = e.target.closest('[data-add-preset]');
-  if(presetBtn) {
+  if (presetBtn) {
     const group = LIBRARY[presetBtn.dataset.addPreset];
     const source = group.items[+presetBtn.dataset.index];
     const list = collection(group.type);
-    
-    if(db[list].some(x => x.title === source.title)) {
-      alert('Этот пункт уже добавлен');
-      return;
-    }
-    
-    const item = { id: Date.now(), title: source.title, done: false };
-    if(group.type === 'quest') Object.assign(item, { stat: source.stat, xp: 15 });
-    db[list].push(item);
+    if (db[list].some(x => x.title === source.title)) return alert('Этот пункт уже добавлен');
+    const itemObj = { id: Date.now(), title: source.title, done: false };
+    if (group.type === 'quest') Object.assign(itemObj, { stat: source.stat, xp: 15 });
+    db[list].push(itemObj);
     save();
     presetBtn.textContent = 'Добавлено';
     presetBtn.disabled = true;
     render();
   }
-  
   const del = e.target.closest('[data-del]');
-  if(del) {
+  if (del) {
     const c = collection(del.dataset.del);
     db[c] = db[c].filter(x => x.id != del.dataset.id);
     save();
     render();
   }
-  
   const tog = e.target.closest('[data-toggle]');
-  if(tog) {
+  if (tog) {
     const q = db[collection(tog.dataset.toggle)].find(x => x.id == tog.dataset.id);
     q.done = !q.done;
-    if(tog.dataset.toggle === 'quest') {
-      db.stats[q.stat] += q.done ? q.xp : -q.xp;
-    }
+    if (tog.dataset.toggle === 'quest') db.stats[q.stat] += q.done ? q.xp : -q.xp;
     save();
     render();
+  }
+
+  const photoButton = e.target.closest('[data-photo]');
+  if (photoButton) {
+    photoTarget = photoButton.dataset.photo;
+    $('#photoInput').value = '';
+    $('#photoInput').click();
+  }
+
+  const removePhotoButton = e.target.closest('[data-remove-photo]');
+  if (removePhotoButton) {
+    const type = removePhotoButton.dataset.removePhoto;
+    if (confirm('Удалить фотографию?')) {
+      db.photos[type] = null;
+      save();
+      render();
+    }
   }
 });
 
@@ -283,11 +306,9 @@ $('#form').addEventListener('submit', e => {
   e.preventDefault();
   const x = Object.fromEntries(new FormData(e.target));
   const obj = { id: Date.now(), title: x.title, done: false };
-  
-  if(modalType === 'quest') Object.assign(obj, { stat: x.stat, xp: +x.xp });
-  if(modalType === 'schedule') obj.time = x.time;
-  if(modalType === 'money') Object.assign(obj, { type: x.type, amount: +x.amount });
-  
+  if (modalType === 'quest') Object.assign(obj, { stat: x.stat, xp: +x.xp });
+  if (modalType === 'schedule') obj.time = x.time;
+  if (modalType === 'money') Object.assign(obj, { type: x.type, amount: +x.amount });
   db[collection(modalType)].push(obj);
   save();
   $('#modal').close();
@@ -308,7 +329,7 @@ $('#settingsForm').addEventListener('submit', e => {
 });
 
 $('#resetBtn').onclick = () => {
-  if(confirm('Стереть весь прогресс?')) {
+  if (confirm('Стереть весь прогресс?')) {
     db = structuredClone(seed);
     save();
     $('#settings').close();
@@ -316,7 +337,90 @@ $('#resetBtn').onclick = () => {
   }
 };
 
-if('serviceWorker' in navigator)
-  navigator.serviceWorker.register('./sw.js');
+$('#avatarBtn').addEventListener('click', () => {
+  photoTarget = 'avatar';
+  $('#photoInput').value = '';
+  $('#photoInput').click();
+});
 
+$('#characterImage')?.closest('.character-photo')?.addEventListener('click', () => {
+  photoTarget = 'avatar';
+  $('#photoInput').value = '';
+  $('#photoInput').click();
+});
+
+$('#photoInput').addEventListener('change', async event => {
+  const file = event.target.files?.[0];
+  if (!file || !photoTarget) return;
+  if (!file.type.startsWith('image/')) {
+    alert('Выберите изображение');
+    return;
+  }
+  if (file.size > 15 * 1024 * 1024) {
+    alert('Файл слишком большой. Максимальный размер — 15 МБ.');
+    return;
+  }
+  try {
+    const compressedPhoto = await compressImage(file);
+    db.photos[photoTarget] = compressedPhoto;
+    save();
+    render();
+  } catch (error) {
+    console.error(error);
+    alert('Не удалось загрузить фотографию');
+  } finally {
+    event.target.value = '';
+    photoTarget = '';
+  }
+});
+
+function render() {
+  resetDay();
+  let l = level(), r = rank();
+  let inM = db.money.filter(x => x.type === 'income').reduce((a, x) => a + x.amount, 0);
+  let outM = db.money.filter(x => x.type === 'expense').reduce((a, x) => a + x.amount, 0);
+
+  $('#dateLabel').textContent = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
+  $('#heroName').textContent = db.name;
+  $('#level').textContent = l;
+  $('#xpLabel').textContent = `${xp() % 100} / 100 XP`;
+  $('#xpBar').style.width = `${xp() % 100}%`;
+  $('#rankBadge').textContent = r[0];
+  $('#rankBadge').style.cssText = `border-color:${r[2]};color:${r[2]};box-shadow:0 0 20px ${r[2]}55`;
+  $('#rankText').textContent = r[3];
+  $('#streak').textContent = db.streak;
+  $('#streakSmall').textContent = db.streak;
+  $('#questCount').textContent = `${db.quests.filter(x => x.done).length} / ${db.quests.length}`;
+  $('#balance').textContent = fmt(inM - outM);
+  $('#bigBalance').textContent = fmt(inM - outM);
+  $('#income').textContent = `Доходы: ${fmt(inM)}`;
+  $('#expense').textContent = `Расходы: ${fmt(outM)}`;
+
+  $('#questList').innerHTML = db.quests.length
+    ? db.quests.map(q => item(q, `<span class="tag">${STAT.find(s => s[0] === q.stat)?.[1] || 'Общее'} · +${q.xp} XP</span>`, 'quest')).join('')
+    : '<p class="item-sub">Квестов пока нет — добавь первый.</p>';
+
+  $('#taskList').innerHTML = db.tasks.length
+    ? db.tasks.map(q => item(q, '<span class="tag">Задача</span>', 'task')).join('')
+    : '<p class="item-sub">Выбери до 3 главных задач.</p>';
+
+  $('#scheduleList').innerHTML = db.schedule.length
+    ? db.schedule.sort((a, b) => a.time.localeCompare(b.time)).map(q => `<article class="item"><b class="tag">${q.time}</b><div class="item-main"><div class="item-title">${esc(q.title)}</div></div><button class="delete" data-del="schedule" data-id="${q.id}">×</button></article>`).join('')
+    : '<p class="item-sub">Запланируй время для важных дел.</p>';
+
+  $('#moneyList').innerHTML = db.money.length
+    ? db.money.slice().reverse().map(m => `<article class="item"><b class="${m.type}">${m.type === 'income' ? '+' : '−'} ${fmt(m.amount)}</b><div class="item-main"><div class="item-title">${esc(m.title)}</div></div><button class="delete" data-del="money" data-id="${m.id}">×</button></article>`).join('')
+    : '<p class="item-sub">Добавь доходы и расходы за месяц.</p>';
+
+  $('#statGrid').innerHTML = STAT.map(s => {
+    let v = db.stats[s[0]], lv = Math.floor(v / 100) + 1;
+    return `<article class="stat panel"><div class="stat-head"><b>${s[2]} ${s[1]}</b><span>${lv} ур.</span></div><div class="progress"><i style="width:${v % 100}%;background:${s[3]}"></i></div><small>${v % 100} / 100 XP</small></article>`;
+  }).join('');
+
+  renderAscension(r, l);
+  renderLibrary();
+  renderPhotos();
+}
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
 render();
