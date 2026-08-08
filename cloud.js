@@ -189,6 +189,14 @@
         return result.user || null;
       })
       .catch(function (error) {
+        if (error && (error.code === "auth/popup-blocked" || error.code === "auth/cancelled-popup-request")) {
+          emitSyncState("signing-in", "Popup blocked, switching to redirect sign-in");
+          window.sessionStorage.setItem("levelup-google-redirect", "1");
+          return auth.signInWithRedirect(provider).then(function () {
+            return { redirecting: true };
+          });
+        }
+
         emitSyncState("error", error.message || "Google sign-in failed");
         throw error;
       });
@@ -258,6 +266,19 @@
 
     auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function (error) {
       emitSyncState("error", error.message || "Unable to enable persistent session");
+    });
+
+    auth.getRedirectResult().then(function (result) {
+      if (result && result.user) {
+        window.sessionStorage.removeItem("levelup-google-redirect");
+      }
+    }).catch(function (error) {
+      window.sessionStorage.removeItem("levelup-google-redirect");
+      emit("levelup:auth-error", {
+        code: error.code || "auth/redirect-error",
+        message: error.message || "Google redirect sign-in failed",
+      });
+      emitSyncState("error", error.message || "Google redirect sign-in failed");
     });
 
     auth.onAuthStateChanged(

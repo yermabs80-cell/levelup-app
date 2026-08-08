@@ -237,6 +237,10 @@ async function signInWithGoogle() {
   try {
     const user = await window.LevelUpCloud.signInGoogle();
     if (!user) return;
+    if (user.redirecting) {
+      setAuthMessage('Popup заблокирован — перенаправляем на безопасный вход Google…');
+      return;
+    }
     setAuthMessage('Google подключён. Загружаем и объединяем прогресс…', 'success');
   } catch (error) {
     guestUpgradePending = false;
@@ -687,6 +691,16 @@ $('#signOutBtn')?.addEventListener('click', async () => {
   guestUpgradePending = false;
   await window.LevelUpCloud?.signOut?.();
   $('#accountModal')?.close();
+});
+
+window.addEventListener('levelup:auth-error', event => {
+  const messages = {
+    'auth/unauthorized-domain': 'Этот домен не добавлен в Firebase Authorized domains.',
+    'auth/operation-not-allowed': 'Google-вход не включён в Firebase Authentication.',
+    'auth/invalid-api-key': 'Неверный apiKey в firebase-config.js.'
+  };
+  const code = event.detail?.code;
+  setAuthMessage(messages[code] || `${code || 'Ошибка'}: ${event.detail?.message || 'Не удалось завершить Google-вход.'}`, 'error');
 });
 
 window.addEventListener('levelup:auth-change', event => {
