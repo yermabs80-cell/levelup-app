@@ -57,18 +57,23 @@ const seed = {
   photos: { avatar: null, before: null, after: null }
 };
 
-let db = JSON.parse(localStorage.getItem('levelup-data') || 'null') || structuredClone(seed);
+const ONBOARDING_KEY = 'levelup-onboarded';
+const storedDb = JSON.parse(localStorage.getItem('levelup-data') || 'null');
+let db = storedDb || structuredClone(seed);
 db = {
   ...structuredClone(seed),
   ...db,
   stats: { ...seed.stats, ...(db.stats || {}) },
   photos: db.photos || { avatar: null, before: null, after: null }
 };
-db.onboarded ??= db.name !== 'Охотник';
+db.onboarded = storedDb?.onboarded === true
+  || localStorage.getItem(ONBOARDING_KEY) === '1'
+  || db.name !== 'Охотник';
 let modalType = '', photoTarget = '';
 let cloudUser = null;
 let cloudConfigured = false;
 let cloudSyncState = 'local';
+let guestUpgradePending = false;
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
@@ -227,18 +232,58 @@ async function signInWithGoogle() {
     return;
   }
 
+  guestUpgradePending = db.onboarded && !cloudUser;
   setAuthMessage('Открываем вход через Google…');
   try {
     const user = await window.LevelUpCloud.signInGoogle();
-    if (!user) {
-      setAuthMessage('Вход отменён или Google не вернул пользователя.', 'error');
-      return;
-    }
-    setAuthMessage('Google подключён. Загружаем прогресс…', 'success');
+    if (!user) return;
+    setAuthMessage('Google подключён. Загружаем и объединяем прогресс…', 'success');
   } catch (error) {
+    guestUpgradePending = false;
     console.error(error);
-    setAuthMessage(error?.message || 'Не удалось войти через Google.', 'error');
+    const messages = {
+      'auth/unauthorized-domain': 'Этот домен не добавлен в Firebase Authorized domains.',
+      'auth/popup-blocked': 'Браузер заблокировал окно Google. Разреши всплывающие окна.',
+      'auth/popup-closed-by-user': 'Окно Google было закрыто до завершения входа.',
+      'auth/cancelled-popup-request': 'Предыдущее окно входа было отменено. Попробуй ещё раз.',
+      'auth/operation-not-allowed': 'Google-вход не включён в Firebase Authentication.',
+      'auth/invalid-api-key': 'Неверный apiKey в firebase-config.js.'
+    };
+    setAuthMessage(messages[error?.code] || `${error?.code || 'Ошибка'}: ${error?.message || 'Не удалось войти через Google.'}`, 'error');
   }
+}
+
+function mergeLists(remoteItems = [], localItems = [], keyOf = item => item.id) {
+  const merged = new Map();
+  remoteItems.forEach(item => merged.set(keyOf(item), item));
+  localItems.forEach(item => {
+    const key = keyOf(item);
+    merged.set(key, { ...(merged.get(key) || {}), ...item });
+  });
+  return [...merged.values()];
+}
+
+function mergeGuestProgress(local, remote = {}) {
+  const mergedStats = Object.fromEntries(
+    Object.keys(seed.stats).map(key => [key, Math.max(local.stats?.[key] || 0, remote.stats?.[key] || 0)])
+  );
+
+  return {
+    ...structuredClone(seed),
+    ...remote,
+    ...local,
+    name: local.name !== 'Охотник' ? local.name : (remote.name || local.name),
+    onboarded: true,
+    updatedAt: Date.now(),
+    streak: Math.max(local.streak || 0, remote.streak || 0),
+    lastDay: [local.lastDay, remote.lastDay].filter(Boolean).sort().at(-1) || '',
+    stats: mergedStats,
+    quests: mergeLists(remote.quests, local.quests, item => item.title),
+    tasks: mergeLists(remote.tasks, local.tasks, item => item.title),
+    schedule: mergeLists(remote.schedule, local.schedule, item => `${item.time}|${item.title}`),
+    money: mergeLists(remote.money, local.money, item => `${item.id}|${item.title}|${item.amount}`),
+    photos: local.photos
+  };
 }
 
 function applyRemoteData(remote) {
@@ -265,7 +310,8 @@ function focusLibraryGroup(groupKey) {
 
 function maybeShowOnboarding() {
   const modal = $('#onboardingModal');
-  if (!modal || db.onboarded || modal.open) return;
+  const onboardingDone = db.onboarded || localStorage.getItem(ONBOARDING_KEY) === '1';
+  if (!modal || onboardingDone || modal.open) return;
   const input = $('#onboardingName');
   if (input) input.value = db.name && db.name !== 'Охотник' ? db.name : '';
   modal.showModal();
@@ -274,6 +320,7 @@ function maybeShowOnboarding() {
 function completeOnboarding(name) {
   db.name = (name || '').trim() || 'Охотник';
   db.onboarded = true;
+  localStorage.setItem(ONBOARDING_KEY, '1');
   save();
   $('#onboardingModal')?.close();
   render();
@@ -637,6 +684,7 @@ $('#accountBtn')?.addEventListener('click', () => {
 $('#googleSignInBtn')?.addEventListener('click', signInWithGoogle);
 $('#accountGoogleBtn')?.addEventListener('click', signInWithGoogle);
 $('#signOutBtn')?.addEventListener('click', async () => {
+  guestUpgradePending = false;
   await window.LevelUpCloud?.signOut?.();
   $('#accountModal')?.close();
 });
@@ -645,12 +693,16 @@ window.addEventListener('levelup:auth-change', event => {
   cloudConfigured = event.detail?.configured ?? !!window.LevelUpCloud?.configured;
   cloudUser = event.detail?.user || null;
 
-  if (cloudUser && !db.onboarded) {
-    db.name = cloudUser.displayName || db.name || 'Охотник';
-    db.onboarded = true;
-    save({ sync: false });
+  if (cloudUser) {
+    const wasNotOnboarded = !db.onboarded;
+    if (wasNotOnboarded) {
+      db.name = cloudUser.displayName || db.name || 'Охотник';
+      db.onboarded = true;
+      save({ sync: false });
+    }
+    localStorage.setItem(ONBOARDING_KEY, '1');
     $('#onboardingModal')?.close();
-    render();
+    if (wasNotOnboarded) render();
   }
 
   updateAccountUi();
@@ -658,6 +710,16 @@ window.addEventListener('levelup:auth-change', event => {
 
 window.addEventListener('levelup:remote-data', event => {
   const remote = event.detail?.data;
+
+  if (guestUpgradePending && cloudUser) {
+    db = mergeGuestProgress(db, remote || {});
+    guestUpgradePending = false;
+    localStorage.setItem(ONBOARDING_KEY, '1');
+    save();
+    render();
+    return;
+  }
+
   if (!remote && cloudUser) {
     window.LevelUpCloud?.save?.(cloudData());
     return;
@@ -699,6 +761,7 @@ $('#settingsForm').addEventListener('submit', e => {
   e.preventDefault();
   db.name = $('#nameInput').value.trim() || 'Охотник';
   db.onboarded = true;
+  localStorage.setItem(ONBOARDING_KEY, '1');
   save();
   $('#settings').close();
   render();
@@ -707,6 +770,7 @@ $('#settingsForm').addEventListener('submit', e => {
 $('#resetBtn').onclick = () => {
   if (confirm('Стереть весь прогресс?')) {
     db = structuredClone(seed);
+    localStorage.removeItem(ONBOARDING_KEY);
     save();
     $('#settings').close();
     render();

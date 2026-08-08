@@ -181,6 +181,8 @@
     emitSyncState("signing-in", "Opening Google sign-in");
     var provider = new firebase.auth.GoogleAuthProvider();
 
+    provider.setCustomParameters({ prompt: "select_account" });
+
     return auth
       .signInWithPopup(provider)
       .then(function (result) {
@@ -188,7 +190,7 @@
       })
       .catch(function (error) {
         emitSyncState("error", error.message || "Google sign-in failed");
-        return null;
+        throw error;
       });
   }
 
@@ -253,6 +255,10 @@
     db = firebase.firestore();
     isConfigured = true;
     api.configured = true;
+
+    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function (error) {
+      emitSyncState("error", error.message || "Unable to enable persistent session");
+    });
 
     auth.onAuthStateChanged(
       function (user) {
