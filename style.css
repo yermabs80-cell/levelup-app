@@ -610,7 +610,8 @@ button:focus-visible {
 }
 
 .save,
-.danger {
+.danger,
+.secondary-auth-button {
   border: 1px solid #2f5f75;
   border-radius: 10px;
   padding: 10px 11px;
@@ -624,6 +625,12 @@ button:focus-visible {
   border-color: #6c3a48;
   background: #2d1119;
   color: #ffb8c8;
+}
+
+.secondary-auth-button {
+  border-color: #42546d;
+  background: #17243a;
+  color: #d5e4f8;
 }
 
 .onboarding-form {
@@ -1377,6 +1384,27 @@ button:focus-visible {
   background: #2a3d58;
 }
 
+.auth-email-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.auth-email-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.account-email-auth {
+  display: grid;
+  gap: 10px;
+}
+
+.account-email-auth[hidden] {
+  display: none;
+}
+
 .auth-message {
   min-height: 16px;
   color: #9db3d0;
@@ -1457,6 +1485,7 @@ button:focus-visible {
   }
 
   .account-copy { display: none; }
+  .auth-email-fields { grid-template-columns: 1fr; }
 
   .tree-grid { grid-template-columns: 1fr; }
   .tree-grid::before {

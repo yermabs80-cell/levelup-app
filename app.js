@@ -201,7 +201,7 @@ function updateAccountUi() {
     error: 'Ошибка синхронизации',
     offline: 'Офлайн-режим'
   };
-  const status = cloudUser ? (statusByState[cloudSyncState] || 'Облако подключено') : (cloudConfigured ? 'Google не подключён' : 'Firebase не настроен');
+  const status = cloudUser ? (statusByState[cloudSyncState] || 'Облако подключено') : (cloudConfigured ? 'Аккаунт не подключён' : 'Firebase не настроен');
 
   $('#accountLabel').textContent = cloudUser ? displayName : 'Гость';
   $('#cloudStatus').textContent = status;
@@ -210,8 +210,9 @@ function updateAccountUi() {
   $('#syncTitle').textContent = status;
   $('#syncDescription').textContent = cloudUser
     ? 'Прогресс автоматически синхронизируется между устройствами'
-    : (cloudConfigured ? 'Войди через Google для облачного сохранения' : 'Добавь Firebase-конфиг, чтобы включить облако');
+    : (cloudConfigured ? 'Войди через Google или email для облачного сохранения' : 'Добавь Firebase-конфиг, чтобы включить облако');
   $('#accountGoogleBtn').hidden = !!cloudUser;
+  $('#accountEmailAuth').hidden = !!cloudUser;
   $('#signOutBtn').hidden = !cloudUser;
   $('#syncIndicator').className = `sync-dot ${cloudUser ? cloudSyncState : 'local'}`;
 
@@ -245,11 +246,93 @@ function refreshCloudSession() {
   return true;
 }
 
-function setAuthMessage(message, type = '') {
-  const element = $('#authMessage');
+function setAuthMessage(message, type = '', target = '#authMessage') {
+  const element = $(target);
   if (!element) return;
   element.textContent = message;
   element.className = `auth-message ${type}`.trim();
+}
+
+function authErrorMessage(error) {
+  const messages = {
+    'auth/email-already-in-use': 'Этот email уже зарегистрирован. Нажми «Войти».',
+    'auth/invalid-email': 'Проверь правильность email.',
+    'auth/weak-password': 'Пароль должен содержать минимум 6 символов.',
+    'auth/missing-password': 'Введи пароль.',
+    'auth/user-not-found': 'Аккаунт с таким email не найден.',
+    'auth/wrong-password': 'Неверный пароль.',
+    'auth/invalid-credential': 'Неверный email или пароль.',
+    'auth/too-many-requests': 'Слишком много попыток. Попробуй позже.',
+    'auth/network-request-failed': 'Нет соединения с Firebase. Проверь интернет.',
+    'auth/unauthorized-domain': 'Этот домен не добавлен в Firebase Authorized domains.',
+    'auth/popup-blocked': 'Браузер заблокировал окно Google. Разреши всплывающие окна.',
+    'auth/popup-closed-by-user': 'Окно Google было закрыто до завершения входа.',
+    'auth/cancelled-popup-request': 'Предыдущее окно входа было отменено. Попробуй ещё раз.',
+    'auth/operation-not-allowed': 'Этот способ входа не включён в Firebase Authentication.',
+    'auth/invalid-api-key': 'Неверный apiKey в firebase-config.js.'
+  };
+  const code = error?.code;
+  return messages[code] || `${code || 'Ошибка'}: ${error?.message || 'Не удалось выполнить вход.'}`;
+}
+
+function completeCloudAuthentication(user, message, messageTarget = '#authMessage') {
+  cloudUser = user;
+  db.onboarded = true;
+  if (!db.name || db.name === 'Охотник') db.name = user.displayName || db.name;
+  localStorage.setItem(ONBOARDING_KEY, '1');
+  save({ sync: false });
+
+  $('#onboardingModal')?.close();
+  $('#accountModal')?.close();
+  updateAccountUi();
+  render();
+
+  window.LevelUpCloud?.load?.();
+  setAuthMessage(message, 'success', messageTarget);
+}
+
+async function authenticateWithEmail(mode, source) {
+  const accountFlow = source === 'account';
+  const messageTarget = accountFlow ? '#accountAuthMessage' : '#authMessage';
+  const emailInput = $(accountFlow ? '#accountEmail' : '#onboardingEmail');
+  const passwordInput = $(accountFlow ? '#accountPassword' : '#onboardingPassword');
+  const email = emailInput?.value.trim() || '';
+  const password = passwordInput?.value || '';
+  const displayName = accountFlow ? db.name : ($('#onboardingName')?.value.trim() || db.name);
+
+  if (!window.LevelUpCloud?.configured) {
+    setAuthMessage('Firebase не настроен. Проверь firebase-config.js.', 'error', messageTarget);
+    return;
+  }
+  if (!email || !password) {
+    setAuthMessage('Введи email и пароль.', 'error', messageTarget);
+    return;
+  }
+  if (password.length < 6) {
+    setAuthMessage('Пароль должен содержать минимум 6 символов.', 'error', messageTarget);
+    return;
+  }
+
+  guestUpgradePending = db.onboarded && !cloudUser;
+  setAuthMessage(mode === 'register' ? 'Создаём аккаунт…' : 'Входим в аккаунт…', '', messageTarget);
+
+  try {
+    const user = mode === 'register'
+      ? await window.LevelUpCloud.signUpEmail(email, password, displayName)
+      : await window.LevelUpCloud.signInEmail(email, password);
+    if (!user) return;
+
+    passwordInput.value = '';
+    completeCloudAuthentication(
+      user,
+      mode === 'register' ? 'Аккаунт создан. Прогресс синхронизирован.' : 'Вход выполнен. Загружаем прогресс…',
+      messageTarget
+    );
+  } catch (error) {
+    guestUpgradePending = false;
+    console.error(error);
+    setAuthMessage(authErrorMessage(error), 'error', messageTarget);
+  }
 }
 
 async function signInWithGoogle() {
@@ -268,31 +351,11 @@ async function signInWithGoogle() {
       return;
     }
 
-    cloudUser = user;
-    db.onboarded = true;
-    if (!db.name || db.name === 'Охотник') db.name = user.displayName || db.name;
-    localStorage.setItem(ONBOARDING_KEY, '1');
-    save({ sync: false });
-
-    $('#onboardingModal')?.close();
-    $('#accountModal')?.close();
-    updateAccountUi();
-    render();
-
-    window.LevelUpCloud?.load?.();
-    setAuthMessage('Google подключён. Загружаем и объединяем прогресс…', 'success');
+    completeCloudAuthentication(user, 'Google подключён. Загружаем и объединяем прогресс…');
   } catch (error) {
     guestUpgradePending = false;
     console.error(error);
-    const messages = {
-      'auth/unauthorized-domain': 'Этот домен не добавлен в Firebase Authorized domains.',
-      'auth/popup-blocked': 'Браузер заблокировал окно Google. Разреши всплывающие окна.',
-      'auth/popup-closed-by-user': 'Окно Google было закрыто до завершения входа.',
-      'auth/cancelled-popup-request': 'Предыдущее окно входа было отменено. Попробуй ещё раз.',
-      'auth/operation-not-allowed': 'Google-вход не включён в Firebase Authentication.',
-      'auth/invalid-api-key': 'Неверный apiKey в firebase-config.js.'
-    };
-    setAuthMessage(messages[error?.code] || `${error?.code || 'Ошибка'}: ${error?.message || 'Не удалось войти через Google.'}`, 'error');
+    setAuthMessage(authErrorMessage(error), 'error');
   }
 }
 
@@ -727,6 +790,10 @@ $('#accountBtn')?.addEventListener('click', () => {
 
 $('#googleSignInBtn')?.addEventListener('click', signInWithGoogle);
 $('#accountGoogleBtn')?.addEventListener('click', signInWithGoogle);
+$('#registerEmailBtn')?.addEventListener('click', () => authenticateWithEmail('register', 'onboarding'));
+$('#signInEmailBtn')?.addEventListener('click', () => authenticateWithEmail('login', 'onboarding'));
+$('#accountRegisterEmailBtn')?.addEventListener('click', () => authenticateWithEmail('register', 'account'));
+$('#accountSignInEmailBtn')?.addEventListener('click', () => authenticateWithEmail('login', 'account'));
 $('#signOutBtn')?.addEventListener('click', async () => {
   guestUpgradePending = false;
   await window.LevelUpCloud?.signOut?.();
@@ -734,13 +801,9 @@ $('#signOutBtn')?.addEventListener('click', async () => {
 });
 
 window.addEventListener('levelup:auth-error', event => {
-  const messages = {
-    'auth/unauthorized-domain': 'Этот домен не добавлен в Firebase Authorized domains.',
-    'auth/operation-not-allowed': 'Google-вход не включён в Firebase Authentication.',
-    'auth/invalid-api-key': 'Неверный apiKey в firebase-config.js.'
-  };
-  const code = event.detail?.code;
-  setAuthMessage(messages[code] || `${code || 'Ошибка'}: ${event.detail?.message || 'Не удалось завершить Google-вход.'}`, 'error');
+  const message = authErrorMessage(event.detail);
+  setAuthMessage(message, 'error');
+  setAuthMessage(message, 'error', '#accountAuthMessage');
 });
 
 window.addEventListener('levelup:auth-change', event => {

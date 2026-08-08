@@ -1,7 +1,7 @@
 {
   "name": "Ethos Tracker — твой путь",
   "short_name": "Ethos",
-  "description": "Квесты, ранги и четыре пути развития",},{
+  "description": "Квесты, ранги и четыре пути развития",
   "lang": "ru",
   "start_url": "./",
   "scope": "./",

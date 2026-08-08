@@ -40,11 +40,17 @@ bundler и npm не нужны.
 Если CDN недоступен, отсутствует один из compat-скриптов или конфигурация не
 заполнена, приложение продолжит работать без облачной синхронизации.
 
-## 3. Включите вход через Google
+## 3. Включите способы входа
 
 1. Перейдите в **Authentication → Sign-in method**.
-2. Включите провайдер **Google**.
-3. Выберите support email и сохраните настройки.
+2. Включите провайдер **Email/Password** (первый переключатель, без Email link).
+3. Включите провайдер **Google**.
+4. Выберите support email и сохраните настройки.
+
+`window.LevelUpCloud.signUpEmail(email, password, displayName)` создаёт
+пользователя, а `window.LevelUpCloud.signInEmail(email, password)` выполняет
+вход в существующий аккаунт. Firebase требует пароль длиной не менее 6
+символов.
 
 `window.LevelUpCloud.signInGoogle()` откроет popup Google. Браузер может
 заблокировать popup, если метод вызван не непосредственно из обработчика
@@ -92,6 +98,8 @@ Firebase Web config публичен, поэтому строгие Firestore Ru
 
 ```js
 window.LevelUpCloud.configured;
+window.LevelUpCloud.signUpEmail(email, password, displayName);
+window.LevelUpCloud.signInEmail(email, password);
 window.LevelUpCloud.signInGoogle();
 window.LevelUpCloud.signOut();
 window.LevelUpCloud.save(data);

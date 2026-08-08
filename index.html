@@ -152,9 +152,24 @@
 
       <label>
         Твоё имя
-        <input id="onboardingName" name="name" maxlength="24" placeholder="Например: Арслан" required>
+        <input id="onboardingName" name="name" maxlength="24" autocomplete="name" placeholder="Например: Арслан" required>
       </label>
-      <button class="save glow-button" type="submit">Начать путь</button>
+      <div class="auth-email-fields">
+        <label>
+          Email
+          <input id="onboardingEmail" type="email" autocomplete="email" placeholder="you@example.com">
+        </label>
+        <label>
+          Пароль
+          <input id="onboardingPassword" type="password" minlength="6" autocomplete="current-password" placeholder="Минимум 6 символов">
+        </label>
+      </div>
+      <div class="auth-email-actions">
+        <button id="registerEmailBtn" class="save glow-button" type="button">Зарегистрироваться</button>
+        <button id="signInEmailBtn" class="secondary-auth-button" type="button">Войти</button>
+      </div>
+      <div class="auth-divider"><span>или без аккаунта</span></div>
+      <button class="save glow-button" type="submit">Начать локально</button>
       <button class="close ghost" type="button" id="skipOnboardingBtn">Войти как Охотник</button>
       <p id="authMessage" class="auth-message" aria-live="polite"></p>
     </form>
@@ -179,6 +194,18 @@
         </div>
       </div>
       <button id="accountGoogleBtn" class="google-auth-button" type="button"><span>G</span> Подключить Google</button>
+      <div id="accountEmailAuth" class="account-email-auth">
+        <div class="auth-divider"><span>или через email</span></div>
+        <div class="auth-email-fields">
+          <label>Email<input id="accountEmail" type="email" autocomplete="email" placeholder="you@example.com"></label>
+          <label>Пароль<input id="accountPassword" type="password" minlength="6" autocomplete="current-password" placeholder="Минимум 6 символов"></label>
+        </div>
+        <div class="auth-email-actions">
+          <button id="accountRegisterEmailBtn" class="save" type="button">Регистрация</button>
+          <button id="accountSignInEmailBtn" class="secondary-auth-button" type="button">Войти</button>
+        </div>
+        <p id="accountAuthMessage" class="auth-message" aria-live="polite"></p>
+      </div>
       <button id="signOutBtn" class="danger" type="button" hidden>Выйти из аккаунта</button>
     </form>
   </dialog>
