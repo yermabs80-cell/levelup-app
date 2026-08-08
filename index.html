@@ -125,12 +125,12 @@
     </section>
   </main>
 
-  <dialog id="modal"><form method="dialog" id="form"><button class="close" value="cancel">×</button><h2 id="modalTitle">Добавить</h2><div id="formFields"></div><button class="save" value="default">Сохранить</button></form></dialog>
-  <dialog id="settings"><form method="dialog" id="settingsForm"><button class="close" value="cancel">×</button><h2>Профиль</h2><label>Твоё имя<input id="nameInput" maxlength="24" placeholder="Охотник"></label><button class="save" value="default">Сохранить</button><button class="danger" id="resetBtn" type="button">Сбросить все данные</button></form></dialog>
+  <dialog id="modal"><form method="dialog" id="form"><button class="close" type="button" value="cancel">×</button><h2 id="modalTitle">Добавить</h2><div id="formFields"></div><button class="save" value="default">Сохранить</button></form></dialog>
+  <dialog id="settings"><form method="dialog" id="settingsForm"><button class="close" type="button" value="cancel">×</button><h2>Профиль</h2><label>Твоё имя<input id="nameInput" maxlength="24" placeholder="Охотник"></label><button class="save" value="default">Сохранить</button><button class="danger" id="resetBtn" type="button">Сбросить все данные</button></form></dialog>
 
   <dialog id="treeModal">
     <form method="dialog" class="tree-modal-form">
-      <button class="close" value="cancel">×</button>
+      <button class="close" type="button" value="cancel">×</button>
       <h2>Древо Легенды · 4 главные ветки</h2>
       <p class="item-sub">Нажми на ветку, чтобы перейти в базу и добавить квесты этого пути.</p>
       <div id="branchTreeRoot" class="branch-tree" aria-live="polite"></div>
@@ -162,7 +162,7 @@
 
   <dialog id="accountModal">
     <form method="dialog" class="account-modal-form">
-      <button class="close" value="cancel">×</button>
+      <button class="close" type="button" value="cancel">×</button>
       <div class="account-modal-head">
         <span id="accountModalAvatar" class="account-avatar large">OH</span>
         <div>

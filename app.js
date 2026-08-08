@@ -517,6 +517,12 @@ function open(type) {
 }
 
 document.addEventListener('click', e => {
+  const closeButton = e.target.closest('button.close');
+  if (closeButton && !closeButton.classList.contains('ghost')) {
+    closeButton.closest('dialog')?.close();
+    return;
+  }
+
   const tab = e.target.closest('[data-page]');
   if (tab) goToPage(tab.dataset.page);
 
@@ -581,14 +587,28 @@ document.addEventListener('click', e => {
   }
 });
 
+$('#modal')?.addEventListener('close', () => {
+  modalType = '';
+  $('#form')?.reset();
+});
+
 $('#form').addEventListener('submit', e => {
   e.preventDefault();
+
+  const listKey = collection(modalType);
+  if (!listKey || !db[listKey]) {
+    console.warn('Modal type is not set, closing dialog safely.');
+    $('#modal').close();
+    return;
+  }
+
   const x = Object.fromEntries(new FormData(e.target));
   const obj = { id: Date.now(), title: x.title, done: false };
   if (modalType === 'quest') Object.assign(obj, { stat: x.stat, xp: +x.xp });
   if (modalType === 'schedule') obj.time = x.time;
   if (modalType === 'money') Object.assign(obj, { type: x.type, amount: +x.amount });
-  db[collection(modalType)].push(obj);
+
+  db[listKey].push(obj);
   save();
   $('#modal').close();
   render();
