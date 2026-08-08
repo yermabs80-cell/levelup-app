@@ -186,7 +186,14 @@
     return auth
       .signInWithPopup(provider)
       .then(function (result) {
-        return result.user || null;
+        currentUser = (result && result.user) || auth.currentUser || null;
+        emitAuthChange();
+        if (currentUser) {
+          emitSyncState("saved", "Google account connected");
+          load();
+          return publicUser(currentUser);
+        }
+        return null;
       })
       .catch(function (error) {
         if (error && (error.code === "auth/popup-blocked" || error.code === "auth/cancelled-popup-request")) {

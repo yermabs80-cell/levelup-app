@@ -241,6 +241,19 @@ async function signInWithGoogle() {
       setAuthMessage('Popup заблокирован — перенаправляем на безопасный вход Google…');
       return;
     }
+
+    cloudUser = user;
+    db.onboarded = true;
+    if (!db.name || db.name === 'Охотник') db.name = user.displayName || db.name;
+    localStorage.setItem(ONBOARDING_KEY, '1');
+    save({ sync: false });
+
+    $('#onboardingModal')?.close();
+    $('#accountModal')?.close();
+    updateAccountUi();
+    render();
+
+    window.LevelUpCloud?.load?.();
     setAuthMessage('Google подключён. Загружаем и объединяем прогресс…', 'success');
   } catch (error) {
     guestUpgradePending = false;
