@@ -219,6 +219,32 @@ function updateAccountUi() {
   setAccountAvatar($('#accountModalAvatar'), cloudUser, displayName);
 }
 
+function refreshCloudSession() {
+  const firebaseUser = window.LevelUpCloud?.getUser?.();
+  if (!firebaseUser) return false;
+
+  const restoredUser = {
+    uid: firebaseUser.uid,
+    displayName: firebaseUser.displayName || '',
+    email: firebaseUser.email || '',
+    photoURL: firebaseUser.photoURL || ''
+  };
+  const changed = !cloudUser || cloudUser.uid !== restoredUser.uid;
+  cloudUser = restoredUser;
+  db.onboarded = true;
+  if (!db.name || db.name === 'Охотник') db.name = restoredUser.displayName || db.name;
+  localStorage.setItem(ONBOARDING_KEY, '1');
+  $('#onboardingModal')?.close();
+  updateAccountUi();
+
+  if (changed) {
+    save({ sync: false });
+    render();
+    window.LevelUpCloud?.load?.();
+  }
+  return true;
+}
+
 function setAuthMessage(message, type = '') {
   const element = $('#authMessage');
   if (!element) return;
@@ -694,6 +720,7 @@ $('#openTreeBtn')?.addEventListener('click', () => {
 });
 
 $('#accountBtn')?.addEventListener('click', () => {
+  refreshCloudSession();
   updateAccountUi();
   $('#accountModal')?.showModal();
 });
@@ -895,6 +922,12 @@ function render() {
 
 cloudConfigured = !!window.LevelUpCloud?.configured;
 cloudUser = window.LevelUpCloud?.getUser?.() || null;
+
+window.addEventListener('focus', refreshCloudSession);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') refreshCloudSession();
+});
+[0, 500, 1500].forEach(delay => setTimeout(refreshCloudSession, delay));
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
 render();

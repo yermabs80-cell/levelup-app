@@ -277,7 +277,11 @@
 
     auth.getRedirectResult().then(function (result) {
       if (result && result.user) {
+        currentUser = result.user;
         window.sessionStorage.removeItem("levelup-google-redirect");
+        emitAuthChange();
+        emitSyncState("loaded", "Google redirect sign-in completed");
+        load();
       }
     }).catch(function (error) {
       window.sessionStorage.removeItem("levelup-google-redirect");
