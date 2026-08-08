@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#070b16">
-  <meta name="description" content="Твой реальный Solo Leveling">
+  <meta name="description" content="Ethos Tracker — квесты, ранги и 4 пути развития">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="./icon-192.png">
+  <link rel="apple-touch-icon" href="./icon.svg">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="stylesheet" href="./style.css">
-  <title>LevelUp — твой путь</title>
+  <title>Ethos Tracker — твой путь</title>
 </head>
 <body>
   <main class="app">
@@ -23,7 +23,16 @@
           </button>
         </h1>
       </div>
-      <button class="icon-btn" id="settingsBtn" aria-label="Настройки">⚙</button>
+      <div class="top-actions">
+        <button id="accountBtn" class="account-pill" type="button" aria-label="Открыть аккаунт">
+          <span id="accountAvatar" class="account-avatar">OH</span>
+          <span class="account-copy">
+            <b id="accountLabel">Гость</b>
+            <small id="cloudStatus">Локально</small>
+          </span>
+        </button>
+        <button class="icon-btn" id="settingsBtn" aria-label="Настройки">⚙</button>
+      </div>
     </header>
 
     <section class="hero panel">
@@ -56,7 +65,13 @@
     </nav>
 
     <section class="page active" id="today">
-      <div class="section-head"><div><p class="eyebrow">Ежедневные квесты</p><h2>Прокачай себя</h2></div><button class="add" data-open="quest">+ Добавить</button></div>
+      <div class="section-head">
+        <div><p class="eyebrow">Твоя система развития</p><h2>4 пути героя</h2></div>
+        <button class="add glow-button" id="openTreeBtn" type="button">Открыть древо</button>
+      </div>
+      <div id="dashboardBranches" class="dashboard-branches"></div>
+
+      <div class="section-head quest-section-head"><div><p class="eyebrow">Ежедневные квесты</p><h2>Прокачай себя</h2></div><button class="add" data-open="quest">+ Добавить</button></div>
       <div id="questList" class="stack"></div>
     </section>
 
@@ -122,20 +137,58 @@
     </form>
   </dialog>
 
-  <dialog id="onboardingModal">
+  <dialog id="onboardingModal" class="auth-dialog">
     <form method="dialog" id="onboardingForm" class="onboarding-form">
-      <h2>Добро пожаловать в Ethos Tracker</h2>
-      <p class="item-sub">Создай профиль и начни прокачку 4 главных веток: Сила, Разум, Финансы, Вера.</p>
+      <div class="auth-brand-mark">✦</div>
+      <p class="eyebrow">Ethos Tracker</p>
+      <h2>Собери лучшую версию себя</h2>
+      <p class="item-sub">Квесты, 4 пути развития, ранги и облачная синхронизация в одном приложении.</p>
+
+      <button id="googleSignInBtn" class="google-auth-button" type="button">
+        <span>G</span>
+        Продолжить через Google
+      </button>
+      <div class="auth-divider"><span>или локальный профиль</span></div>
+
       <label>
         Твоё имя
         <input id="onboardingName" name="name" maxlength="24" placeholder="Например: Арслан" required>
       </label>
-      <button class="save" type="submit">Начать путь</button>
+      <button class="save glow-button" type="submit">Начать путь</button>
       <button class="close ghost" type="button" id="skipOnboardingBtn">Войти как Охотник</button>
+      <p id="authMessage" class="auth-message" aria-live="polite"></p>
+    </form>
+  </dialog>
+
+  <dialog id="accountModal">
+    <form method="dialog" class="account-modal-form">
+      <button class="close" value="cancel">×</button>
+      <div class="account-modal-head">
+        <span id="accountModalAvatar" class="account-avatar large">OH</span>
+        <div>
+          <p class="eyebrow">Аккаунт и синхронизация</p>
+          <h2 id="accountModalName">Локальный профиль</h2>
+          <p id="accountModalEmail" class="item-sub">Данные хранятся на этом устройстве</p>
+        </div>
+      </div>
+      <div class="sync-card">
+        <span id="syncIndicator" class="sync-dot"></span>
+        <div>
+          <b id="syncTitle">Локальное сохранение</b>
+          <small id="syncDescription">Подключи Google для облачной синхронизации</small>
+        </div>
+      </div>
+      <button id="accountGoogleBtn" class="google-auth-button" type="button"><span>G</span> Подключить Google</button>
+      <button id="signOutBtn" class="danger" type="button" hidden>Выйти из аккаунта</button>
     </form>
   </dialog>
 
   <input id="photoInput" type="file" accept="image/*" hidden>
+  <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="cloud.js"></script>
   <script src="library.js"></script>
   <script src="app.js"></script>
 </body>

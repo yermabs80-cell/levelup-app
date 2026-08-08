@@ -1,14 +1,14 @@
-const CACHE = 'levelup-v6';
+const CACHE = 'levelup-v7';
 const FILES = [
   './',
   './index.html',
   './style.css',
   './library.js',
   './app.js',
+  './firebase-config.js',
+  './cloud.js',
   './manifest.webmanifest',
-  './icon.svg',
-  './icon-192.png',
-  './icon-512.png'
+  './icon.svg'
 ];
 
 self.addEventListener('install', event => {
@@ -38,6 +38,21 @@ self.addEventListener('fetch', event => {
           return response;
         })
         .catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
+
+  if (sameOrigin && (event.request.destination === 'script' || event.request.destination === 'style')) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE).then(cache => cache.put(event.request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
     );
     return;
   }

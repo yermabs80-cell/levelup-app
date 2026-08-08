@@ -42,6 +42,7 @@ const TREE_BRANCHES = [
 const seed = {
   name: 'Охотник',
   onboarded: false,
+  updatedAt: 0,
   streak: 0,
   lastDay: '',
   stats: Object.fromEntries(STAT.map(([id]) => [id, 0])),
@@ -57,14 +58,33 @@ const seed = {
 };
 
 let db = JSON.parse(localStorage.getItem('levelup-data') || 'null') || structuredClone(seed);
-db.photos ??= { avatar: null, before: null, after: null };
+db = {
+  ...structuredClone(seed),
+  ...db,
+  stats: { ...seed.stats, ...(db.stats || {}) },
+  photos: db.photos || { avatar: null, before: null, after: null }
+};
 db.onboarded ??= db.name !== 'Охотник';
 let modalType = '', photoTarget = '';
+let cloudUser = null;
+let cloudConfigured = false;
+let cloudSyncState = 'local';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
 
-function save() { localStorage.setItem('levelup-data', JSON.stringify(db)); }
+function cloudData() {
+  const { photos, ...data } = db;
+  return data;
+}
+
+function save({ sync = true } = {}) {
+  db.updatedAt = Date.now();
+  localStorage.setItem('levelup-data', JSON.stringify(db));
+  if (sync && window.LevelUpCloud?.configured && window.LevelUpCloud.getUser?.()) {
+    window.LevelUpCloud.save(cloudData());
+  }
+}
 function today() { return new Date().toISOString().slice(0, 10); }
 function xp() { return Object.values(db.stats).reduce((a, b) => a + b, 0); }
 function level() { return Math.floor(xp() / 100) + 1; }
@@ -122,6 +142,117 @@ function renderBranchTree() {
       }).join('')}
     </div>
   `;
+}
+
+function renderDashboardBranches() {
+  const root = $('#dashboardBranches');
+  if (!root) return;
+
+  root.innerHTML = TREE_BRANCHES.map((branch, index) => {
+    const totalXp = branchXp(branch.stats);
+    const localLevel = Math.floor(totalXp / TREE_XP_STEP) + 1;
+    const progress = Math.round(((totalXp % TREE_XP_STEP) / TREE_XP_STEP) * 100);
+
+    return `
+      <button type="button" class="dashboard-branch" data-branch-open="${branch.key}" style="--branch-accent:${branch.color};--card-delay:${index * 0.08}s">
+        <span class="dashboard-branch-glow"></span>
+        <div class="dashboard-branch-top">
+          <span class="dashboard-branch-icon">${branch.icon}</span>
+          <span class="dashboard-branch-level">${localLevel} ур.</span>
+        </div>
+        <strong>${esc(branch.title)}</strong>
+        <small>${esc(branch.subtitle)} · ${branchStage(localLevel)}</small>
+        <div class="dashboard-branch-track"><i style="width:${progress}%"></i></div>
+        <span class="dashboard-branch-xp">${totalXp} XP</span>
+      </button>
+    `;
+  }).join('');
+}
+
+function initials(name) {
+  return String(name || 'Охотник')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map(part => part[0]?.toUpperCase() || '')
+    .join('') || 'OH';
+}
+
+function setAccountAvatar(element, user, name) {
+  if (!element) return;
+  if (user?.photoURL) {
+    element.innerHTML = `<img src="${esc(user.photoURL)}" alt="Фото аккаунта">`;
+  } else {
+    element.textContent = initials(name);
+  }
+}
+
+function updateAccountUi() {
+  const displayName = cloudUser?.displayName || db.name || 'Охотник';
+  const statusByState = {
+    local: cloudConfigured ? 'Готов к синхронизации' : 'Локально',
+    syncing: 'Синхронизация…',
+    synced: 'Сохранено в облаке',
+    error: 'Ошибка синхронизации',
+    offline: 'Офлайн-режим'
+  };
+  const status = cloudUser ? (statusByState[cloudSyncState] || 'Облако подключено') : (cloudConfigured ? 'Google не подключён' : 'Firebase не настроен');
+
+  $('#accountLabel').textContent = cloudUser ? displayName : 'Гость';
+  $('#cloudStatus').textContent = status;
+  $('#accountModalName').textContent = cloudUser ? displayName : 'Локальный профиль';
+  $('#accountModalEmail').textContent = cloudUser?.email || 'Данные хранятся только на этом устройстве';
+  $('#syncTitle').textContent = status;
+  $('#syncDescription').textContent = cloudUser
+    ? 'Прогресс автоматически синхронизируется между устройствами'
+    : (cloudConfigured ? 'Войди через Google для облачного сохранения' : 'Добавь Firebase-конфиг, чтобы включить облако');
+  $('#accountGoogleBtn').hidden = !!cloudUser;
+  $('#signOutBtn').hidden = !cloudUser;
+  $('#syncIndicator').className = `sync-dot ${cloudUser ? cloudSyncState : 'local'}`;
+
+  setAccountAvatar($('#accountAvatar'), cloudUser, displayName);
+  setAccountAvatar($('#accountModalAvatar'), cloudUser, displayName);
+}
+
+function setAuthMessage(message, type = '') {
+  const element = $('#authMessage');
+  if (!element) return;
+  element.textContent = message;
+  element.className = `auth-message ${type}`.trim();
+}
+
+async function signInWithGoogle() {
+  if (!window.LevelUpCloud?.configured) {
+    setAuthMessage('Сначала добавь настройки Firebase из FIREBASE_SETUP.md.', 'error');
+    return;
+  }
+
+  setAuthMessage('Открываем вход через Google…');
+  try {
+    const user = await window.LevelUpCloud.signInGoogle();
+    if (!user) {
+      setAuthMessage('Вход отменён или Google не вернул пользователя.', 'error');
+      return;
+    }
+    setAuthMessage('Google подключён. Загружаем прогресс…', 'success');
+  } catch (error) {
+    console.error(error);
+    setAuthMessage(error?.message || 'Не удалось войти через Google.', 'error');
+  }
+}
+
+function applyRemoteData(remote) {
+  if (!remote || (remote.updatedAt || 0) <= (db.updatedAt || 0)) return;
+  const localPhotos = db.photos;
+  db = {
+    ...structuredClone(seed),
+    ...remote,
+    stats: { ...seed.stats, ...(remote.stats || {}) },
+    photos: localPhotos
+  };
+  if (cloudUser) db.onboarded = true;
+  localStorage.setItem('levelup-data', JSON.stringify(db));
+  render();
 }
 
 function focusLibraryGroup(groupKey) {
@@ -473,6 +604,64 @@ $('#nameTreeBtn')?.addEventListener('click', () => {
   $('#treeModal')?.showModal();
 });
 
+$('#openTreeBtn')?.addEventListener('click', () => {
+  renderBranchTree();
+  $('#treeModal')?.showModal();
+});
+
+$('#accountBtn')?.addEventListener('click', () => {
+  updateAccountUi();
+  $('#accountModal')?.showModal();
+});
+
+$('#googleSignInBtn')?.addEventListener('click', signInWithGoogle);
+$('#accountGoogleBtn')?.addEventListener('click', signInWithGoogle);
+$('#signOutBtn')?.addEventListener('click', async () => {
+  await window.LevelUpCloud?.signOut?.();
+  $('#accountModal')?.close();
+});
+
+window.addEventListener('levelup:auth-change', event => {
+  cloudConfigured = event.detail?.configured ?? !!window.LevelUpCloud?.configured;
+  cloudUser = event.detail?.user || null;
+
+  if (cloudUser && !db.onboarded) {
+    db.name = cloudUser.displayName || db.name || 'Охотник';
+    db.onboarded = true;
+    save({ sync: false });
+    $('#onboardingModal')?.close();
+    render();
+  }
+
+  updateAccountUi();
+});
+
+window.addEventListener('levelup:remote-data', event => {
+  const remote = event.detail?.data;
+  if (!remote && cloudUser) {
+    window.LevelUpCloud?.save?.(cloudData());
+    return;
+  }
+  if ((remote?.updatedAt || 0) > (db.updatedAt || 0)) applyRemoteData(remote);
+  else if (remote && cloudUser) window.LevelUpCloud?.save?.(cloudData());
+});
+
+window.addEventListener('levelup:sync-state', event => {
+  const rawState = event.detail?.state || 'local';
+  const stateMap = {
+    queued: 'syncing',
+    saving: 'syncing',
+    loading: 'syncing',
+    'signing-in': 'syncing',
+    saved: 'synced',
+    loaded: 'synced',
+    'signed-out': 'local',
+    unavailable: 'local'
+  };
+  cloudSyncState = stateMap[rawState] || rawState;
+  updateAccountUi();
+});
+
 $('#onboardingForm')?.addEventListener('submit', e => {
   e.preventDefault();
   completeOnboarding($('#onboardingName')?.value);
@@ -587,9 +776,14 @@ function render() {
   renderAscension(r, l);
   renderLibrary();
   renderBranchTree();
+  renderDashboardBranches();
   renderPhotos();
+  updateAccountUi();
   maybeShowOnboarding();
 }
+
+cloudConfigured = !!window.LevelUpCloud?.configured;
+cloudUser = window.LevelUpCloud?.getUser?.() || null;
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
 render();
