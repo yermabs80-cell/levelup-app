@@ -1,4 +1,4 @@
-const CACHE = 'levelup-v8';
+const CACHE = 'levelup-v9';
 const FILES = [
   './',
   './index.html',

@@ -265,9 +265,11 @@ function authErrorMessage(error) {
     'auth/too-many-requests': 'Слишком много попыток. Попробуй позже.',
     'auth/network-request-failed': 'Нет соединения с Firebase. Проверь интернет.',
     'auth/unauthorized-domain': 'Этот домен не добавлен в Firebase Authorized domains.',
-    'auth/popup-blocked': 'Браузер заблокировал окно Google. Разреши всплывающие окна.',
+    'auth/popup-blocked': 'Браузер заблокировал окно Google. Разреши всплывающие окна для этого сайта и попробуй снова.',
     'auth/popup-closed-by-user': 'Окно Google было закрыто до завершения входа.',
     'auth/cancelled-popup-request': 'Предыдущее окно входа было отменено. Попробуй ещё раз.',
+    'auth/redirect-no-result': 'Google-редирект завершился, но вход не подтверждён. Разреши pop-up и войди через всплывающее окно.',
+    'auth/redirect-error': 'Google-редирект завершился с ошибкой. Попробуй вход через pop-up.',
     'auth/operation-not-allowed': 'Этот способ входа не включён в Firebase Authentication.',
     'auth/invalid-api-key': 'Неверный apiKey в firebase-config.js.'
   };

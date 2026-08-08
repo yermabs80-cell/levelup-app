@@ -254,11 +254,12 @@
       })
       .catch(function (error) {
         if (error && (error.code === "auth/popup-blocked" || error.code === "auth/cancelled-popup-request")) {
-          emitSyncState("signing-in", "Popup blocked, switching to redirect sign-in");
-          window.sessionStorage.setItem("levelup-google-redirect", "1");
-          return auth.signInWithRedirect(provider).then(function () {
-            return { redirecting: true };
+          emit("levelup:auth-error", {
+            code: error.code,
+            message: "Google popup was blocked by the browser",
           });
+          emitSyncState("error", "Google popup was blocked");
+          throw error;
         }
 
         emitSyncState("error", error.message || "Google sign-in failed");
@@ -334,6 +335,8 @@
       emitSyncState("error", error.message || "Unable to enable persistent session");
     });
 
+    var redirectAttempted = window.sessionStorage.getItem("levelup-google-redirect") === "1";
+
     auth.getRedirectResult().then(function (result) {
       if (result && result.user) {
         currentUser = result.user;
@@ -341,6 +344,20 @@
         emitAuthChange();
         emitSyncState("loaded", "Google redirect sign-in completed");
         load();
+        return;
+      }
+
+      if (redirectAttempted) {
+        window.setTimeout(function () {
+          if (!getUser()) {
+            window.sessionStorage.removeItem("levelup-google-redirect");
+            emit("levelup:auth-error", {
+              code: "auth/redirect-no-result",
+              message: "Google redirect finished without authenticated user",
+            });
+            emitSyncState("error", "Google redirect sign-in did not complete");
+          }
+        }, 800);
       }
     }).catch(function (error) {
       window.sessionStorage.removeItem("levelup-google-redirect");
@@ -356,8 +373,10 @@
         currentUser = user || null;
         emitAuthChange();
 
-        if (currentUser) load();
-        else emitSyncState("signed-out", "Not signed in");
+        if (currentUser) {
+          window.sessionStorage.removeItem("levelup-google-redirect");
+          load();
+        } else emitSyncState("signed-out", "Not signed in");
       },
       function (error) {
         emitSyncState("error", error.message || "Unable to read authentication state");
