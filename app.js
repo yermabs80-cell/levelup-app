@@ -10,24 +10,33 @@ const STAT = [
 ];
 
 const RANKS = [
-  ['E', 1, '#94a3b8', 'Новичок. Только начинает свой путь, не имеет опыта и сражается голыми руками.'],
-  ['EE', 2, '#a8b3c2', 'Получил первое простое оружие и начинает осваивать основы боя.'],
-  ['EEE', 3, '#cbd5e1', 'Приобрёл деревянный меч и научился побеждать слабых противников.'],
-  ['D', 5, '#4ade80', 'Настоящий ученик воина. Получил первую броню и стал увереннее в бою.'],
-  ['DD', 7, '#22c55e', 'Хорошо владеет мечом и способен противостоять опытным врагам.'],
-  ['DDD', 9, '#16a34a', 'Полностью освоил базовую подготовку. Готов к серьёзным испытаниям.'],
-  ['C', 12, '#60a5fa', 'Опытный воин. Использует качественную экипировку и уверенно побеждает большинство противников.'],
-  ['CC', 15, '#3b82f6', 'Элитный боец. Отличается высокой выносливостью, техникой и дисциплиной.'],
-  ['CCC', 18, '#2563eb', 'Один из лучших воинов своего поколения. Его навыки вызывают уважение.'],
-  ['B', 22, '#a78bfa', 'Великий воин. Освоил особые техники и значительно превосходит обычных бойцов.'],
-  ['BB', 26, '#8b5cf6', 'Легендарный чемпион. Его сила и мастерство известны далеко за пределами своего региона.'],
-  ['BBB', 30, '#7c3aed', 'Абсолютный мастер. Владеет редкими способностями и почти не знает равных среди людей.'],
-  ['A', 35, '#fbbf24', 'Герой. Символ силы, мужества и лидерства.'],
-  ['AA', 40, '#f59e0b', 'Живая легенда. Его имя известно во многих землях, а способности поражают даже мастеров.'],
-  ['AAA', 45, '#d97706', 'Мифический герой. Его возможности кажутся невозможными для обычного человека.'],
-  ['S', 50, '#fb7185', 'Эпический воин. Обладает невероятной силой, скоростью и контролем энергии.'],
-  ['SS', 55, '#f43f5e', 'Высшее воплощение мастерства. Способен менять ход великих битв в одиночку.'],
-  ['SSS', 60, '#e11d48', 'Абсолютная вершина человеческого потенциала. Идеал силы, техники, опыта и воли. Практически недостижимый уровень для большинства.']
+  { name: 'EEE', level: 1, color: '#cbd5e1', percentile: '0–1%', score403030: '≤ 5', score333334: '≤ 5', description: 'Новичок. Только начинает свой путь, не имеет опыта и сражается голыми руками.' },
+  { name: 'EE', level: 2, color: '#a8b3c2', percentile: '1–3%', score403030: '5–10', score333334: '5–10', description: 'Получил первое простое оружие и начинает осваивать основы боя.' },
+  { name: 'E', level: 3, color: '#94a3b8', percentile: '3–5%', score403030: '10–15', score333334: '10–18', description: 'Приобрёл деревянный меч и научился побеждать слабых противников.' },
+  { name: 'DDD', level: 5, color: '#16a34a', percentile: '5–8%', score403030: '15–20', score333334: '18–25', description: 'Настоящий ученик воина. Получил первую броню и стал увереннее в бою.' },
+  { name: 'DD', level: 7, color: '#22c55e', percentile: '8–12%', score403030: '20–30', score333334: '25–35', description: 'Хорошо владеет мечом и способен противостоять опытным врагам.' },
+  { name: 'D', level: 9, color: '#4ade80', percentile: '12–20%', score403030: '30–40', score333334: '35–45', description: 'Полностью освоил базовую подготовку. Готов к серьёзным испытаниям.' },
+  { name: 'CCC', level: 12, color: '#2563eb', percentile: '20–30%', score403030: '40–50', score333334: '45–55', description: 'Опытный воин. Использует качественную экипировку и уверенно побеждает большинство противников.' },
+  { name: 'CC', level: 15, color: '#3b82f6', percentile: '30–40%', score403030: '50–60', score333334: '55–65', description: 'Элитный боец. Отличается высокой выносливостью, техникой и дисциплиной.' },
+  { name: 'C', level: 18, color: '#60a5fa', percentile: '40–50%', score403030: '60–70', score333334: '65–75', description: 'Один из лучших воинов своего поколения. Его навыки вызывают уважение.' },
+  { name: 'BBB', level: 22, color: '#7c3aed', percentile: '50–60%', score403030: '70–75', score333334: '75–80', description: 'Великий воин. Освоил особые техники и значительно превосходит обычных бойцов.' },
+  { name: 'BB', level: 26, color: '#8b5cf6', percentile: '60–70%', score403030: '75–80', score333334: '80–85', description: 'Легендарный чемпион. Его сила и мастерство известны далеко за пределами своего региона.' },
+  { name: 'B', level: 30, color: '#a78bfa', percentile: '70–80%', score403030: '80–85', score333334: '85–90', description: 'Абсолютный мастер. Владеет редкими способностями и почти не знает равных среди людей.' },
+  { name: 'AAA', level: 35, color: '#d97706', percentile: '80–90%', score403030: '85–90', score333334: '90–92', description: 'Герой. Символ силы, мужества и лидерства.' },
+  { name: 'AA', level: 40, color: '#f59e0b', percentile: '90–95%', score403030: '90–93', score333334: '92–94', description: 'Живая легенда. Его имя известно во многих землях, а способности поражают даже мастеров.' },
+  { name: 'A', level: 45, color: '#fbbf24', percentile: '95–99%', score403030: '93–95', score333334: '94–96', description: 'Мифический герой. Его возможности кажутся невозможными для обычного человека.' },
+  { name: 'SSS', level: 50, color: '#e11d48', percentile: '99–99.5%', score403030: '95–97', score333334: '96–98', description: 'Эпический воин. Обладает невероятной силой, скоростью и контролем энергии.' },
+  { name: 'SS', level: 55, color: '#f43f5e', percentile: '99.5–99.9%', score403030: '97–99', score333334: '98–99', description: 'Высшее воплощение мастерства. Способен менять ход великих битв в одиночку.' },
+  { name: 'S', level: 60, color: '#fb7185', percentile: '99.9–100%', score403030: '99–100', score333334: '99–100', description: 'Абсолютная вершина человеческого потенциала. Идеал силы, техники, опыта и воли. Практически недостижимый уровень для большинства.' }
+];
+
+const TREE_XP_STEP = 120;
+const TREE_STAGES = ['Семя', 'Росток', 'Ствол', 'Крона', 'Легенда'];
+const TREE_BRANCHES = [
+  { key: 'forcePath', icon: '💪', title: 'Титан Тела', subtitle: 'Путь Силы', color: '#fb7185', stats: ['strength', 'health'] },
+  { key: 'mindPath', icon: '🧠', title: 'Архитектор Разума', subtitle: 'Путь Знаний', color: '#60a5fa', stats: ['intellect', 'knowledge', 'skills'] },
+  { key: 'financePath', icon: '💎', title: 'Кузница Капитала', subtitle: 'Путь Финансов', color: '#4de0ff', stats: ['wealth'] },
+  { key: 'faithPath', icon: '🕌', title: 'Свет Имана', subtitle: 'Путь Веры', color: '#8b5cf6', stats: ['faith', 'discipline'] }
 ];
 
 const seed = {
@@ -57,7 +66,69 @@ function save() { localStorage.setItem('levelup-data', JSON.stringify(db)); }
 function today() { return new Date().toISOString().slice(0, 10); }
 function xp() { return Object.values(db.stats).reduce((a, b) => a + b, 0); }
 function level() { return Math.floor(xp() / 100) + 1; }
-function rank() { return [...RANKS].reverse().find(r => level() >= r[1]); }
+function rank() { return [...RANKS].reverse().find(r => level() >= r.level) || RANKS[0]; }
+
+function goToPage(pageId) {
+  document.querySelectorAll('.tabs button, .page').forEach(x => x.classList.remove('active'));
+  $(`.tabs button[data-page="${pageId}"]`)?.classList.add('active');
+  $('#' + pageId)?.classList.add('active');
+}
+
+function branchXp(statKeys) {
+  return statKeys.reduce((sum, key) => sum + (db.stats[key] || 0), 0);
+}
+
+function branchStage(level) {
+  return TREE_STAGES[Math.min(TREE_STAGES.length - 1, Math.floor((level - 1) / 4))];
+}
+
+function renderBranchTree() {
+  const root = $('#branchTreeRoot');
+  if (!root) return;
+
+  const total = TREE_BRANCHES.reduce((sum, branch) => sum + branchXp(branch.stats), 0);
+  const totalLevel = Math.floor(total / TREE_XP_STEP) + 1;
+
+  root.innerHTML = `
+    <div class="tree-core">
+      <b>${esc(db.name)}</b>
+      <span>Ядро Древа · ${total} XP · ${totalLevel} ур.</span>
+    </div>
+    <div class="tree-grid">
+      ${TREE_BRANCHES.map((branch, index) => {
+        const totalXp = branchXp(branch.stats);
+        const localLevel = Math.floor(totalXp / TREE_XP_STEP) + 1;
+        const currentInStep = totalXp % TREE_XP_STEP;
+        const percent = Math.round((currentInStep / TREE_XP_STEP) * 100);
+        const toNext = TREE_XP_STEP - currentInStep || TREE_XP_STEP;
+        const stage = branchStage(localLevel);
+
+        return `
+          <button type="button" class="tree-node" data-branch-open="${branch.key}" style="--tree-color:${branch.color};--float-delay:${index * 0.2}s">
+            <div class="tree-node-top">
+              <span class="tree-icon">${branch.icon}</span>
+              <div>
+                <b>${esc(branch.title)}</b>
+                <small>${esc(branch.subtitle)}</small>
+              </div>
+            </div>
+            <div class="tree-node-meta">${stage} · ${localLevel} ур. · ${totalXp} XP</div>
+            <div class="tree-track"><i style="width:${percent}%"></i></div>
+            <div class="tree-node-foot">До роста: ${toNext} XP</div>
+          </button>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function focusLibraryGroup(groupKey) {
+  const card = $(`[data-library-group="${groupKey}"]`);
+  if (!card) return;
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  card.classList.add('library-group-focus');
+  setTimeout(() => card.classList.remove('library-group-focus'), 1300);
+}
 
 function resetDay() {
   let d = today();
@@ -149,43 +220,96 @@ function photoCard(type, title, photo) {
   `;
 }
 
+function renderNextRankProgress(currentRank, level) {
+  const box = $('#nextRankProgress');
+  if (!box) return;
+
+  const currentIndex = RANKS.findIndex(x => x.name === currentRank.name);
+  const nextRank = RANKS[currentIndex + 1];
+
+  if (!nextRank) {
+    box.style.setProperty('--next-rank-color', currentRank.color);
+    box.innerHTML = `
+      <div class="next-rank-head">
+        <span class="next-rank-label">Вершина достигнута: <b>${esc(currentRank.name)}</b></span>
+        <span class="next-rank-pill max">MAX</span>
+      </div>
+      <div class="next-rank-foot">Открыты все ступени рангов.</div>
+    `;
+    return;
+  }
+
+  const levelsLeft = Math.max(nextRank.level - level, 0);
+  const levelSpan = Math.max(nextRank.level - currentRank.level, 1);
+  const passed = Math.min(Math.max(level - currentRank.level, 0), levelSpan);
+  const progress = Math.round((passed / levelSpan) * 100);
+
+  box.style.setProperty('--next-rank-color', nextRank.color);
+  box.innerHTML = `
+    <div class="next-rank-head">
+      <span class="next-rank-label">Следующий ранг: <b>${esc(nextRank.name)}</b></span>
+      <span class="next-rank-pill">${levelsLeft === 0 ? 'Готов к апу' : `Осталось ${levelsLeft} ур.`}</span>
+    </div>
+    <div class="next-rank-track"><i style="width:${progress}%"></i></div>
+    <div class="next-rank-foot">${level} → ${nextRank.level} ур. · ${esc(nextRank.percentile)} перцентиль</div>
+  `;
+}
+
 function renderAscension(currentRank, level) {
   const path = $('#rankPath');
   if (!path) return;
-  path.innerHTML = RANKS.map(([rankName, reqLevel, color, description]) => {
+  const totalRanks = RANKS.length;
+
+  path.innerHTML = RANKS.map((rankInfo, index) => {
+    const { name, level: reqLevel, color, description, percentile, score403030, score333334 } = rankInfo;
     const isUnlocked = level >= reqLevel;
-    const isCurrent = currentRank[0] === rankName;
+    const isCurrent = currentRank.name === name;
+    const statusLabel = isCurrent
+      ? '<span class="current-label">Текущий</span>'
+      : `<span class="state-label ${isUnlocked ? 'open' : 'locked'}">${isUnlocked ? 'Открыт' : 'Закрыт'}</span>`;
+
     return `
       <article class="rank-step ${isUnlocked ? 'active' : 'locked'} ${isCurrent ? 'current' : ''}" style="--rank-color:${color}">
-        <div class="rank-letter">${rankName}</div>
+        <div class="rank-letter-wrap">
+          <div class="rank-letter">${name}</div>
+          <span class="rank-order">${index + 1}/${totalRanks}</span>
+        </div>
         <div class="rank-info">
           <div class="rank-title-row">
-            <div>
-              <div class="rank-name">Ранг ${rankName}</div>
-              <div class="rank-req">${isUnlocked ? 'Открыт' : 'Откроется'} на уровне ${reqLevel}</div>
+            <div class="rank-head">
+              <div class="rank-name">Ранг ${name}</div>
+              <div class="rank-req">${isUnlocked ? 'Доступен' : 'Откроется'} на уровне ${reqLevel}</div>
+              <div class="rank-percentile">${percentile} перцентиль</div>
             </div>
-            ${isCurrent ? '<span class="current-label">Текущий</span>' : ''}
+            ${statusLabel}
           </div>
           <details class="rank-details">
             <summary>Подробнее</summary>
-            <p>${esc(description)}</p>
+            <p class="rank-desc">${esc(description)}</p>
+            <div class="rank-meta">
+              <span class="rank-chip">Перцентиль: ${esc(percentile)}</span>
+              <span class="rank-chip">40/30/30: ${esc(score403030)}</span>
+              <span class="rank-chip">33/33/34: ${esc(score333334)}</span>
+            </div>
           </details>
         </div>
       </article>
     `;
   }).join('');
-  $('#characterRank').textContent = currentRank[0];
+
+  $('#characterRank').textContent = currentRank.name;
   $('#characterLevel').textContent = level;
-  $('#characterDescription').textContent = currentRank[3];
+  $('#characterDescription').textContent = `${currentRank.description} · ${currentRank.percentile} перцентиль`;
+  renderNextRankProgress(currentRank, level);
 }
 
 function renderLibrary() {
   const root = $('#libraryList');
   if (!root || typeof LIBRARY === 'undefined') return;
   root.innerHTML = Object.entries(LIBRARY).map(([key, group]) => `
-    <article class="panel library-group">
+    <article class="panel library-group" data-library-group="${key}">
       <div class="library-head"><b>${group.title}</b><span>${group.label}</span></div>
-      <div>${group.items.slice(0, 5).map((item, i) => preset(key, i, item)).join('')}</div>
+      <div class="library-items">${group.items.slice(0, 5).map((item, i) => preset(key, i, item)).join('')}</div>
       ${group.items.length > 5 ? `<button class="show-more" data-show="${key}">Показать все ${group.items.length}</button>` : ''}
     </article>
   `).join('');
@@ -202,9 +326,9 @@ function preset(group, index, item) {
 
 function showGroup(key) {
   const group = LIBRARY[key];
-  const card = $(`[data-show="${key}"]`)?.closest('.library-group');
-  if (!card) return;
-  card.querySelector('div:nth-child(2)').innerHTML = group.items.map((item, i) => preset(key, i, item)).join('');
+  const card = $(`[data-library-group="${key}"]`);
+  if (!group || !card) return;
+  card.querySelector('.library-items').innerHTML = group.items.map((item, i) => preset(key, i, item)).join('');
   card.querySelector('[data-show]')?.remove();
 }
 
@@ -245,11 +369,17 @@ function open(type) {
 
 document.addEventListener('click', e => {
   const tab = e.target.closest('[data-page]');
-  if (tab) {
-    document.querySelectorAll('.tabs button, .page').forEach(x => x.classList.remove('active'));
-    tab.classList.add('active');
-    $('#' + tab.dataset.page).classList.add('active');
+  if (tab) goToPage(tab.dataset.page);
+
+  const branchOpen = e.target.closest('[data-branch-open]');
+  if (branchOpen) {
+    const key = branchOpen.dataset.branchOpen;
+    $('#treeModal')?.close();
+    goToPage('library');
+    showGroup(key);
+    focusLibraryGroup(key);
   }
+
   const op = e.target.closest('[data-open]');
   if (op) open(op.dataset.open);
   const more = e.target.closest('[data-show]');
@@ -320,6 +450,11 @@ $('#settingsBtn').onclick = () => {
   $('#settings').showModal();
 };
 
+$('#nameTreeBtn')?.addEventListener('click', () => {
+  renderBranchTree();
+  $('#treeModal')?.showModal();
+});
+
 $('#settingsForm').addEventListener('submit', e => {
   e.preventDefault();
   db.name = $('#nameInput').value.trim() || 'Охотник';
@@ -385,9 +520,9 @@ function render() {
   $('#level').textContent = l;
   $('#xpLabel').textContent = `${xp() % 100} / 100 XP`;
   $('#xpBar').style.width = `${xp() % 100}%`;
-  $('#rankBadge').textContent = r[0];
-  $('#rankBadge').style.cssText = `border-color:${r[2]};color:${r[2]};box-shadow:0 0 20px ${r[2]}55`;
-  $('#rankText').textContent = r[3];
+  $('#rankBadge').textContent = r.name;
+  $('#rankBadge').style.cssText = `border-color:${r.color};color:${r.color};box-shadow:0 0 20px ${r.color}55`;
+  $('#rankText').textContent = `${r.description} · ${r.percentile} перцентиль`;
   $('#streak').textContent = db.streak;
   $('#streakSmall').textContent = db.streak;
   $('#questCount').textContent = `${db.quests.filter(x => x.done).length} / ${db.quests.length}`;
@@ -419,6 +554,7 @@ function render() {
 
   renderAscension(r, l);
   renderLibrary();
+  renderBranchTree();
   renderPhotos();
 }
 

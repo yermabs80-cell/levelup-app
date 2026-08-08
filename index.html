@@ -14,7 +14,15 @@
 <body>
   <main class="app">
     <header class="topbar">
-      <div><p class="eyebrow" id="dateLabel"></p><h1>С возвращением, <span id="heroName">Охотник</span></h1></div>
+      <div>
+        <p class="eyebrow" id="dateLabel"></p>
+        <h1>
+          С возвращением,
+          <button id="nameTreeBtn" class="name-tree-btn" type="button" aria-label="Открыть дерево 4 веток">
+            <span id="heroName">Охотник</span>
+          </button>
+        </h1>
+      </div>
       <button class="icon-btn" id="settingsBtn" aria-label="Настройки">⚙</button>
     </header>
 
@@ -63,6 +71,7 @@
           <p class="eyebrow">Текущий статус</p>
           <h2><span id="characterRank">E</span>-ранг · уровень <span id="characterLevel">1</span></h2>
           <p id="characterDescription" class="item-sub"></p>
+          <div id="nextRankProgress" class="next-rank-progress" aria-live="polite"></div>
         </div>
       </article>
       <div class="section-head compact"><div><p class="eyebrow">Ступени</p><h2>Лестница рангов</h2></div></div>
@@ -96,13 +105,22 @@
 
     <section class="page" id="library">
       <div class="section-head"><div><p class="eyebrow">Из твоей базы знаний</p><h2>Выбери свой путь</h2></div></div>
-      <p class="item-sub library-intro">Добавляй только то, что готов выполнять. Квесты дадут XP, а цели появятся в плане.</p>
+      <p class="item-sub library-intro">4 главные ветки: Сила, Разум, Финансы и Вера. Нажимай «+ Добавить» и собирай своё дерево прогресса.</p>
       <div id="libraryList" class="library-list"></div>
     </section>
   </main>
 
   <dialog id="modal"><form method="dialog" id="form"><button class="close" value="cancel">×</button><h2 id="modalTitle">Добавить</h2><div id="formFields"></div><button class="save" value="default">Сохранить</button></form></dialog>
   <dialog id="settings"><form method="dialog" id="settingsForm"><button class="close" value="cancel">×</button><h2>Профиль</h2><label>Твоё имя<input id="nameInput" maxlength="24" placeholder="Охотник"></label><button class="save" value="default">Сохранить</button><button class="danger" id="resetBtn" type="button">Сбросить все данные</button></form></dialog>
+
+  <dialog id="treeModal">
+    <form method="dialog" class="tree-modal-form">
+      <button class="close" value="cancel">×</button>
+      <h2>Древо Легенды · </h2>4 главные ветки</h2>
+      <p class="item-sub">Нажми на ветку, чтобы перейти в базу и добавить квесты этого пути.</p>
+      <div id="branchTreeRoot" class="branch-tree" aria-live="polite"></div>
+    </form>
+  </dialog>
 
   <input id="photoInput" type="file" accept="image/*" hidden>
   <script src="library.js"></script>
