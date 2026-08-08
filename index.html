@@ -116,9 +116,22 @@
   <dialog id="treeModal">
     <form method="dialog" class="tree-modal-form">
       <button class="close" value="cancel">×</button>
-      <h2>Древо Легенды · </h2>4 главные ветки</h2>
+      <h2>Древо Легенды · 4 главные ветки</h2>
       <p class="item-sub">Нажми на ветку, чтобы перейти в базу и добавить квесты этого пути.</p>
       <div id="branchTreeRoot" class="branch-tree" aria-live="polite"></div>
+    </form>
+  </dialog>
+
+  <dialog id="onboardingModal">
+    <form method="dialog" id="onboardingForm" class="onboarding-form">
+      <h2>Добро пожаловать в Ethos Tracker</h2>
+      <p class="item-sub">Создай профиль и начни прокачку 4 главных веток: Сила, Разум, Финансы, Вера.</p>
+      <label>
+        Твоё имя
+        <input id="onboardingName" name="name" maxlength="24" placeholder="Например: Арслан" required>
+      </label>
+      <button class="save" type="submit">Начать путь</button>
+      <button class="close ghost" type="button" id="skipOnboardingBtn">Войти как Охотник</button>
     </form>
   </dialog>
 

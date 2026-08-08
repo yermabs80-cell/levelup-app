@@ -41,6 +41,7 @@ const TREE_BRANCHES = [
 
 const seed = {
   name: 'Охотник',
+  onboarded: false,
   streak: 0,
   lastDay: '',
   stats: Object.fromEntries(STAT.map(([id]) => [id, 0])),
@@ -57,6 +58,7 @@ const seed = {
 
 let db = JSON.parse(localStorage.getItem('levelup-data') || 'null') || structuredClone(seed);
 db.photos ??= { avatar: null, before: null, after: null };
+db.onboarded ??= db.name !== 'Охотник';
 let modalType = '', photoTarget = '';
 
 const $ = s => document.querySelector(s);
@@ -128,6 +130,22 @@ function focusLibraryGroup(groupKey) {
   card.scrollIntoView({ behavior: 'smooth', block: 'start' });
   card.classList.add('library-group-focus');
   setTimeout(() => card.classList.remove('library-group-focus'), 1300);
+}
+
+function maybeShowOnboarding() {
+  const modal = $('#onboardingModal');
+  if (!modal || db.onboarded || modal.open) return;
+  const input = $('#onboardingName');
+  if (input) input.value = db.name && db.name !== 'Охотник' ? db.name : '';
+  modal.showModal();
+}
+
+function completeOnboarding(name) {
+  db.name = (name || '').trim() || 'Охотник';
+  db.onboarded = true;
+  save();
+  $('#onboardingModal')?.close();
+  render();
 }
 
 function resetDay() {
@@ -455,9 +473,23 @@ $('#nameTreeBtn')?.addEventListener('click', () => {
   $('#treeModal')?.showModal();
 });
 
+$('#onboardingForm')?.addEventListener('submit', e => {
+  e.preventDefault();
+  completeOnboarding($('#onboardingName')?.value);
+});
+
+$('#skipOnboardingBtn')?.addEventListener('click', () => {
+  completeOnboarding(db.name || 'Охотник');
+});
+
+$('#onboardingModal')?.addEventListener('cancel', e => {
+  if (!db.onboarded) e.preventDefault();
+});
+
 $('#settingsForm').addEventListener('submit', e => {
   e.preventDefault();
   db.name = $('#nameInput').value.trim() || 'Охотник';
+  db.onboarded = true;
   save();
   $('#settings').close();
   render();
@@ -556,6 +588,7 @@ function render() {
   renderLibrary();
   renderBranchTree();
   renderPhotos();
+  maybeShowOnboarding();
 }
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
