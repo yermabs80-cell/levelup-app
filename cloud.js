@@ -41,6 +41,17 @@
     });
   }
 
+  function completeAuthentication(result, message) {
+    currentUser = (result && result.user) || (auth && auth.currentUser) || null;
+    emitAuthChange();
+
+    if (!currentUser) return null;
+
+    emitSyncState("saved", message);
+    load();
+    return publicUser(currentUser);
+  }
+
   function hasFirebaseConfig(config) {
     if (!config || typeof config !== "object") return false;
 
@@ -172,6 +183,59 @@
     return currentUser || (auth && auth.currentUser) || null;
   }
 
+  function signUpEmail(email, password, displayName) {
+    if (!isConfigured || !auth) {
+      emitSyncState("unavailable", "Firebase is not configured");
+      return Promise.resolve(null);
+    }
+
+    emitSyncState("signing-in", "Creating Firebase account");
+
+    return auth
+      .createUserWithEmailAndPassword(String(email || "").trim(), password)
+      .then(function (result) {
+        currentUser = (result && result.user) || auth.currentUser || null;
+        var name = String(displayName || "").trim();
+
+        if (!currentUser || !name) return result;
+
+        return currentUser
+          .updateProfile({ displayName: name })
+          .catch(function () {
+            return null;
+          })
+          .then(function () {
+            return result;
+          });
+      })
+      .then(function (result) {
+        return completeAuthentication(result, "Firebase account created");
+      })
+      .catch(function (error) {
+        emitSyncState("error", error.message || "Email registration failed");
+        throw error;
+      });
+  }
+
+  function signInEmail(email, password) {
+    if (!isConfigured || !auth) {
+      emitSyncState("unavailable", "Firebase is not configured");
+      return Promise.resolve(null);
+    }
+
+    emitSyncState("signing-in", "Signing in with email");
+
+    return auth
+      .signInWithEmailAndPassword(String(email || "").trim(), password)
+      .then(function (result) {
+        return completeAuthentication(result, "Firebase account connected");
+      })
+      .catch(function (error) {
+        emitSyncState("error", error.message || "Email sign-in failed");
+        throw error;
+      });
+  }
+
   function signInGoogle() {
     if (!isConfigured || !auth) {
       emitSyncState("unavailable", "Firebase is not configured");
@@ -186,14 +250,7 @@
     return auth
       .signInWithPopup(provider)
       .then(function (result) {
-        currentUser = (result && result.user) || auth.currentUser || null;
-        emitAuthChange();
-        if (currentUser) {
-          emitSyncState("saved", "Google account connected");
-          load();
-          return publicUser(currentUser);
-        }
-        return null;
+        return completeAuthentication(result, "Google account connected");
       })
       .catch(function (error) {
         if (error && (error.code === "auth/popup-blocked" || error.code === "auth/cancelled-popup-request")) {
@@ -230,6 +287,8 @@
 
   var api = {
     configured: false,
+    signUpEmail: signUpEmail,
+    signInEmail: signInEmail,
     signInGoogle: signInGoogle,
     signOut: signOut,
     save: save,
