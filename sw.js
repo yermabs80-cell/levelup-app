@@ -1,4 +1,4 @@
-const CACHE = 'ethos-v10';
+const CACHE = 'ethos-v11';
 
 const PRECACHE = [
   './',

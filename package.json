@@ -6,7 +6,6 @@
   "type": "module",
   "scripts": {
     "start": "http-server . -p 4173 -c-1",
-    "deploy": "wrangler pages deploy . --project-name ethos-tracker",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "node --test \"test/*.test.js\""
