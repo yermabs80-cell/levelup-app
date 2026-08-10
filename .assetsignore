@@ -1,0 +1,11 @@
+node_modules
+test
+scripts
+.claude
+*.md
+eslint.config.js
+package.json
+package-lock.json
+bun.lock
+bun.lockb
+wrangler.jsonc
