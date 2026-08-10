@@ -1,37 +1,75 @@
-const CACHE = 'levelup-v9';
-const FILES = [
+const CACHE = 'ethos-v10';
+
+const PRECACHE = [
   './',
   './index.html',
   './style.css',
-  './library.js',
-  './app.js',
-  './firebase-config.js',
-  './cloud.js',
   './manifest.webmanifest',
-  './icon.svg'
+  './icon.svg',
+  './firebase-config.js',
+  './src/main.js',
+  './src/core/constants.js',
+  './src/core/schema.js',
+  './src/core/progress.js',
+  './src/core/merge.js',
+  './src/core/focus.js',
+  './src/data/storage.js',
+  './src/data/photos.js',
+  './src/data/store.js',
+  './src/data/cloud.js',
+  './src/data/ambient.js',
+  './src/data/library.js',
+  './src/ui/dom.js',
+  './src/ui/html.js',
+  './src/ui/feedback.js',
+  './src/ui/render.js',
+  './src/ui/account.js',
+  './src/ui/modals.js',
+  './src/ui/focus.js',
+  './src/ui/photos.js'
 ];
 
 self.addEventListener('install', event => {
   self.skipWaiting();
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(FILES)));
+  // Один недоступный файл не должен ронять установку целиком.
+  event.waitUntil(
+    caches.open(CACHE).then(cache => Promise.allSettled(PRECACHE.map(url => cache.add(url))))
+  );
 });
 
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key))))
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key))))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
+function networkFirst(request) {
+  return fetch(request)
+    .then(response => {
+      if (response.ok) {
+        const copy = response.clone();
+        caches.open(CACHE).then(cache => cache.put(request, copy));
+      }
+      return response;
+    })
+    .catch(() => caches.match(request));
+}
+
 self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return;
+  const { request } = event;
+  if (request.method !== 'GET') return;
 
-  const requestUrl = new URL(event.request.url);
-  const sameOrigin = requestUrl.origin === self.location.origin;
+  const url = new URL(request.url);
 
-  if (event.request.mode === 'navigate') {
+  // Сторонние запросы идут в сеть напрямую: ответы Firebase Auth и Firestore
+  // кэшировать нельзя — иначе можно отдать чужую или протухшую сессию.
+  if (url.origin !== self.location.origin) return;
+
+  if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request)
+      fetch(request)
         .then(response => {
           const copy = response.clone();
           caches.open(CACHE).then(cache => cache.put('./index.html', copy));
@@ -42,34 +80,5 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  if (sameOrigin && (event.request.destination === 'script' || event.request.destination === 'style')) {
-    event.respondWith(
-      fetch(event.request)
-        .then(response => {
-          if (response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE).then(cache => cache.put(event.request, copy));
-          }
-          return response;
-        })
-        .catch(() => caches.match(event.request))
-    );
-    return;
-  }
-
-  event.respondWith(
-    caches.match(event.request).then(cached => {
-      const network = fetch(event.request)
-        .then(response => {
-          if (sameOrigin && response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE).then(cache => cache.put(event.request, copy));
-          }
-          return response;
-        })
-        .catch(() => cached);
-
-      return cached || network;
-    })
-  );
+  event.respondWith(networkFirst(request));
 });

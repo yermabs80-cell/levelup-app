@@ -1,0 +1,14 @@
+# Что не нужно выкладывать в интернет.
+# Синтаксис как в .gitignore. Внимание: src/ выкладывать ОБЯЗАТЕЛЬНО —
+# приложение грузит ES-модули оттуда прямо в браузере.
+
+node_modules
+test
+scripts
+eslint.config.js
+package.json
+package-lock.json
+*.md
+.gitignore
+.claude
+.git

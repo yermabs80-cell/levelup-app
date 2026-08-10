@@ -4,133 +4,297 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#070b16">
-  <meta name="description" content="Ethos Tracker — квесты, ранги и 4 пути развития">
+  <meta name="description" content="Ethos Tracker — квесты, ранги и четыре пути развития">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icon.svg">
   <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <link rel="stylesheet" href="./style.css">
   <title>Ethos Tracker — твой путь</title>
 </head>
 <body>
+  <a class="skip-link" href="#today">Перейти к содержимому</a>
+
   <main class="app">
     <header class="topbar">
-      <div>
+      <div class="topbar-copy">
         <p class="eyebrow" id="dateLabel"></p>
         <h1>
           С возвращением,
-          <button id="nameTreeBtn" class="name-tree-btn" type="button" aria-label="Открыть дерево 4 веток">
+          <button id="nameTreeBtn" class="name-tree-btn" type="button">
             <span id="heroName">Охотник</span>
           </button>
         </h1>
       </div>
       <div class="top-actions">
-        <button id="accountBtn" class="account-pill" type="button" aria-label="Открыть аккаунт">
-          <span id="accountAvatar" class="account-avatar">OH</span>
+        <button id="accountBtn" class="account-pill" type="button" aria-label="Открыть аккаунт и синхронизацию">
+          <span id="accountAvatar" class="account-avatar" aria-hidden="true">ОХ</span>
           <span class="account-copy">
             <b id="accountLabel">Гость</b>
             <small id="cloudStatus">Локально</small>
           </span>
         </button>
-        <button class="icon-btn" id="settingsBtn" aria-label="Настройки">⚙</button>
+        <button class="icon-btn" id="settingsBtn" type="button" aria-label="Настройки профиля">
+          <span aria-hidden="true">⚙</span>
+        </button>
       </div>
     </header>
 
     <section class="hero panel">
-      <button class="avatar" id="avatarBtn" type="button" aria-label="Добавить или изменить фотографию героя">
-        <span id="avatarFallback">⚔</span>
-        <img id="avatarImage" alt="Фото героя" hidden>
+      <button class="avatar" type="button" data-avatar-trigger aria-label="Добавить или изменить фотографию героя">
+        <span id="avatarFallback" aria-hidden="true">⚔</span>
+        <img id="avatarImage" alt="Фотография героя" hidden>
         <em id="rankBadge">E</em>
       </button>
       <div class="hero-copy">
-        <div class="line"><b>Уровень <span id="level">1</span></b><span id="xpLabel">0 / 100 XP</span></div>
+        <div class="line">
+          <b>Уровень <span id="level">1</span></b>
+          <span id="xpLabel">0 / 100 XP</span>
+        </div>
         <div class="progress"><i id="xpBar"></i></div>
         <p id="rankText">Начинающий охотник</p>
       </div>
-      <div class="streak">🔥<b id="streak">0</b><small>дней</small></div>
+      <div class="streak">
+        <span class="streak-flame" aria-hidden="true">🔥</span>
+        <b id="streak">0</b>
+        <small>дней</small>
+      </div>
     </section>
 
     <section class="summary">
-      <article class="mini panel"><span>Квесты</span><b id="questCount">0 / 0</b><small>на сегодня</small></article>
-      <article class="mini panel"><span>Серия</span><b id="streakSmall">0</b><small>дней подряд</small></article>
-      <article class="mini panel"><span>Баланс</span><b id="balance">0 ₸</b><small>этот месяц</small></article>
+      <article class="mini panel">
+        <span>Квесты</span><b id="questCount">0 / 0</b><small>на сегодня</small>
+      </article>
+      <article class="mini panel">
+        <span>Серия</span><b id="streakSmall">0</b><small>дней подряд</small>
+      </article>
+      <article class="mini panel">
+        <span>Баланс</span><b id="balance">0 ₸</b><small>этот месяц</small>
+      </article>
     </section>
 
-    <nav class="tabs" aria-label="Разделы">
-      <button data-page="today" class="active">Сегодня</button>
-      <button data-page="ascension">Ранги</button>
-      <button data-page="stats">Характер</button>
-      <button data-page="plan">План</button>
-      <button data-page="money">Финансы</button>
-      <button data-page="library">База</button>
+    <nav class="tabs" aria-label="Разделы приложения">
+      <button type="button" data-page="today" class="active" aria-current="page">Сегодня</button>
+      <button type="button" data-page="ascension">Ранги</button>
+      <button type="button" data-page="stats">Характер</button>
+      <button type="button" data-page="plan">План</button>
+      <button type="button" data-page="money">Финансы</button>
+      <button type="button" data-page="library">База</button>
     </nav>
 
-    <section class="page active" id="today">
+    <section class="page active" id="today" tabindex="-1">
       <div class="section-head">
-        <div><p class="eyebrow">Твоя система развития</p><h2>4 пути героя</h2></div>
+        <div>
+          <p class="eyebrow">Твоя система развития</p>
+          <h2>4 пути героя</h2>
+        </div>
         <button class="add glow-button" id="openTreeBtn" type="button">Открыть древо</button>
       </div>
       <div id="dashboardBranches" class="dashboard-branches"></div>
 
-      <div class="section-head quest-section-head"><div><p class="eyebrow">Ежедневные квесты</p><h2>Прокачай себя</h2></div><button class="add" data-open="quest">+ Добавить</button></div>
+      <div class="section-head quest-section-head">
+        <div>
+          <p class="eyebrow">Ежедневные квесты</p>
+          <h2>Прокачай себя</h2>
+        </div>
+        <button class="add" type="button" data-open="quest">+ Добавить</button>
+      </div>
       <div id="questList" class="stack"></div>
     </section>
 
-    <section class="page" id="ascension">
-      <div class="section-head"><div><p class="eyebrow">Твой путь героя</p><h2>Восхождение</h2></div></div>
-      <article class="panel character-card">
-        <div class="character-photo" role="button" tabindex="0" aria-label="Добавить или изменить фотографию героя">
-          <span id="characterFallback">⚔</span>
-          <img id="characterImage" alt="Фото героя" hidden>
-        </div>
+    <section class="page" id="ascension" tabindex="-1">
+      <div class="section-head">
         <div>
+          <p class="eyebrow">Твой путь героя</p>
+          <h2>Восхождение</h2>
+        </div>
+      </div>
+
+      <article class="panel character-card">
+        <button class="character-photo" type="button" data-avatar-trigger aria-label="Добавить или изменить фотографию героя">
+          <span id="characterFallback" aria-hidden="true">⚔</span>
+          <img id="characterImage" alt="Фотография героя" hidden>
+        </button>
+        <div class="character-copy">
           <p class="eyebrow">Текущий статус</p>
           <h2><span id="characterRank">E</span>-ранг · уровень <span id="characterLevel">1</span></h2>
           <p id="characterDescription" class="item-sub"></p>
           <div id="nextRankProgress" class="next-rank-progress" aria-live="polite"></div>
         </div>
       </article>
-      <div class="section-head compact"><div><p class="eyebrow">Ступени</p><h2>Лестница рангов</h2></div></div>
+
+      <div class="section-head compact">
+        <div>
+          <p class="eyebrow">Ступени</p>
+          <h2>Лестница рангов</h2>
+        </div>
+      </div>
       <div id="rankPath" class="rank-path"></div>
-      <div class="section-head compact"><div><p class="eyebrow">Твоя трансформация</p><h2>До / После</h2></div></div>
-      <p class="item-sub photo-note">Фотографии видны только на этом устройстве и хранятся в браузере.</p>
+
+      <div class="section-head compact">
+        <div>
+          <p class="eyebrow">Твоя трансформация</p>
+          <h2>До / После</h2>
+        </div>
+      </div>
+      <p class="item-sub photo-note">Фотографии хранятся только на этом устройстве и не попадают в облако.</p>
       <div id="photoGrid" class="photo-grid"></div>
     </section>
 
-    <section class="page" id="stats">
-      <div class="section-head"><div><p class="eyebrow">Твои параметры</p><h2>Характер</h2></div></div>
+    <section class="page" id="stats" tabindex="-1">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Твои параметры</p>
+          <h2>Характер</h2>
+        </div>
+      </div>
       <div id="statGrid" class="stat-grid"></div>
-      <article class="panel tip"><b>Как это работает</b><p>Каждый выполненный квест даёт опыт общей прокачке и выбранной характеристике.</p></article>
+      <article class="panel tip">
+        <b>Как это работает</b>
+        <p>Каждый выполненный квест добавляет опыт общему уровню и выбранной характеристике. Опыт считается по журналу выполнений, поэтому повторное добавление квеста не начисляет его дважды.</p>
+      </article>
     </section>
 
-    <section class="page" id="plan">
-      <div class="section-head"><div><p class="eyebrow">Главное на сегодня</p><h2>Фокус</h2></div><button class="add" data-open="task">+ Задача</button></div>
+    <section class="page" id="plan" tabindex="-1">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Главное на сегодня</p>
+          <h2>Фокус</h2>
+        </div>
+        <button class="add" type="button" data-open="task">+ Задача</button>
+      </div>
       <div id="taskList" class="stack"></div>
-      <div class="section-head schedule-head"><div><p class="eyebrow">Время</p><h2>Расписание</h2></div><button class="add" data-open="schedule">+ Событие</button></div>
+
+      <div class="section-head schedule-head">
+        <div>
+          <p class="eyebrow">Время</p>
+          <h2>Расписание</h2>
+        </div>
+        <button class="add" type="button" data-open="schedule">+ Событие</button>
+      </div>
       <div id="scheduleList" class="stack"></div>
+
+      <div class="section-head schedule-head">
+        <div>
+          <p class="eyebrow">Помодоро и фон</p>
+          <h2>Таймер фокуса</h2>
+        </div>
+      </div>
+
+      <article class="panel focus-panel">
+        <div class="focus-presets" id="focusPresets" role="group" aria-label="Длина сессии"></div>
+
+        <div class="focus-main">
+          <div class="focus-dial" id="focusDial" style="--focus-color:#4de0ff">
+            <svg class="focus-ring" viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="focus-ring-bg" cx="60" cy="60" r="52"></circle>
+              <circle class="focus-ring-fg" id="focusProgressRing" cx="60" cy="60" r="52"
+                stroke-dasharray="326.73" stroke-dashoffset="326.73"></circle>
+            </svg>
+            <div class="focus-dial-copy">
+              <span class="focus-phase" id="focusPhase">Готов к работе</span>
+              <b class="focus-clock" id="focusClock">25:00</b>
+            </div>
+          </div>
+
+          <div class="focus-controls">
+            <button type="button" class="focus-primary" id="focusPrimaryBtn">Начать фокус</button>
+            <div class="focus-secondary">
+              <button type="button" class="secondary-auth-button" id="focusSkipBtn" hidden>Пропустить</button>
+              <button type="button" class="secondary-auth-button" id="focusStopBtn" hidden>Сбросить</button>
+            </div>
+            <p class="focus-hint" id="focusHint">25 минут работы, затем 5 минут отдыха</p>
+          </div>
+        </div>
+
+        <div class="focus-sound-row">
+          <div class="focus-sounds" id="focusSounds" role="group" aria-label="Фоновый звук"></div>
+          <label class="focus-volume">
+            <span aria-hidden="true">🔊</span>
+            <input id="focusVolume" type="range" min="0" max="100" step="1" value="50" aria-label="Громкость фонового звука">
+          </label>
+        </div>
+      </article>
+
+      <div class="focus-stats">
+        <div class="focus-cycle" id="focusCycle" aria-label="Прогресс до длинного перерыва"></div>
+        <div class="focus-stats-grid">
+          <div class="focus-stat">
+            <b id="focusTodayCount">0</b>
+            <small>сессий сегодня</small>
+          </div>
+          <div class="focus-stat">
+            <b id="focusTodayMinutes">0 мин</b>
+            <small>сегодня</small>
+          </div>
+          <div class="focus-stat">
+            <b id="focusTotalCount">0</b>
+            <small>сессий всего</small>
+          </div>
+          <div class="focus-stat">
+            <b id="focusTotalMinutes">0 мин</b>
+            <small>за всё время</small>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <section class="page" id="money">
-      <div class="section-head"><div><p class="eyebrow">Этот месяц</p><h2>Финансы</h2></div><button class="add" data-open="money">+ Операция</button></div>
+    <section class="page" id="money" tabindex="-1">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Этот месяц</p>
+          <h2>Финансы</h2>
+        </div>
+        <button class="add" type="button" data-open="money">+ Операция</button>
+      </div>
       <article class="panel money-card">
-        <span>Текущий баланс</span><strong id="bigBalance">0 ₸</strong>
-        <div><small id="income">Доходы: 0 ₸</small><small id="expense">Расходы: 0 ₸</small></div>
+        <span>Баланс за текущий месяц</span>
+        <strong id="bigBalance">0 ₸</strong>
+        <div>
+          <small id="income">Доходы: 0 ₸</small>
+          <small id="expense">Расходы: 0 ₸</small>
+        </div>
       </article>
       <div id="moneyList" class="stack"></div>
     </section>
 
-    <section class="page" id="library">
-      <div class="section-head"><div><p class="eyebrow">Из твоей базы знаний</p><h2>Выбери свой путь</h2></div></div>
-      <p class="item-sub library-intro">4 главные ветки: Сила, Разум, Финансы и Вера. Нажимай «+ Добавить» и собирай своё дерево прогресса.</p>
+    <section class="page" id="library" tabindex="-1">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Из твоей базы знаний</p>
+          <h2>Выбери свой путь</h2>
+        </div>
+      </div>
+      <p class="item-sub library-intro">Четыре главные ветки: Сила, Разум, Финансы и Вера. Нажимай «+ Добавить» и собирай своё дерево прогресса.</p>
       <div id="libraryList" class="library-list"></div>
     </section>
   </main>
 
-  <dialog id="modal"><form method="dialog" id="form"><button class="close" type="button" value="cancel">×</button><h2 id="modalTitle">Добавить</h2><div id="formFields"></div><button class="save" value="default">Сохранить</button></form></dialog>
-  <dialog id="settings"><form method="dialog" id="settingsForm"><button class="close" type="button" value="cancel">×</button><h2>Профиль</h2><label>Твоё имя<input id="nameInput" maxlength="24" placeholder="Охотник"></label><button class="save" value="default">Сохранить</button><button class="danger" id="resetBtn" type="button">Сбросить все данные</button></form></dialog>
+  <dialog id="modal">
+    <form id="form">
+      <button class="close" type="button" data-close-dialog aria-label="Закрыть">×</button>
+      <h2 id="modalTitle">Добавить</h2>
+      <div id="formFields"></div>
+      <button class="save glow-button" type="submit">Сохранить</button>
+    </form>
+  </dialog>
+
+  <dialog id="settings">
+    <form id="settingsForm">
+      <button class="close" type="button" data-close-dialog aria-label="Закрыть">×</button>
+      <h2>Профиль</h2>
+      <label>
+        Твоё имя
+        <input id="nameInput" maxlength="24" placeholder="Охотник" autocomplete="name">
+      </label>
+      <button class="save glow-button" type="submit">Сохранить</button>
+      <button class="danger" id="resetBtn" type="button">Сбросить все данные</button>
+    </form>
+  </dialog>
 
   <dialog id="treeModal">
     <form method="dialog" class="tree-modal-form">
-      <button class="close" type="button" value="cancel">×</button>
+      <button class="close" type="button" data-close-dialog aria-label="Закрыть">×</button>
       <h2>Древо Легенды · 4 главные ветки</h2>
       <p class="item-sub">Нажми на ветку, чтобы перейти в базу и добавить квесты этого пути.</p>
       <div id="branchTreeRoot" class="branch-tree" aria-live="polite"></div>
@@ -138,85 +302,141 @@
   </dialog>
 
   <dialog id="onboardingModal" class="auth-dialog">
-    <form id="onboardingForm" class="onboarding-form">
-      <div class="auth-brand-mark">✦</div>
+    <div class="onboarding-body">
+      <div class="auth-brand-mark" aria-hidden="true">✦</div>
       <p class="eyebrow">Ethos Tracker</p>
       <h2>Собери лучшую версию себя</h2>
-      <p class="item-sub">Квесты, 4 пути развития, ранги и облачная синхронизация в одном приложении.</p>
+      <p class="item-sub">Квесты, четыре пути развития, ранги и синхронизация между устройствами.</p>
 
       <button id="googleSignInBtn" class="google-auth-button" type="button">
-        <span>G</span>
+        <span class="google-mark" aria-hidden="true">
+          <svg viewBox="0 0 18 18" width="18" height="18">
+            <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.71-1.57 2.68-3.89 2.68-6.62Z"/>
+            <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.02-3.7H.96v2.34A8.99 8.99 0 0 0 9 18Z"/>
+            <path fill="#FBBC05" d="M3.98 10.72a5.41 5.41 0 0 1 0-3.44V4.94H.96a8.99 8.99 0 0 0 0 8.12l3.02-2.34Z"/>
+            <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.59C13.46.89 11.43 0 9 0A8.99 8.99 0 0 0 .96 4.94l3.02 2.34C4.68 5.16 6.66 3.58 9 3.58Z"/>
+          </svg>
+        </span>
         Продолжить через Google
       </button>
-      <div class="auth-divider"><span>или локальный профиль</span></div>
+      <p class="auth-hint">Google покажет список аккаунтов — можно выбрать любой или войти в новый.</p>
 
-      <label>
-        Твоё имя
-        <input id="onboardingName" name="name" maxlength="24" autocomplete="name" placeholder="Например: Арслан" required>
-      </label>
-      <div class="auth-email-fields">
-        <label>
-          Email
-          <input id="onboardingEmail" type="email" autocomplete="email" placeholder="you@example.com">
-        </label>
-        <label>
-          Пароль
-          <input id="onboardingPassword" type="password" minlength="6" autocomplete="current-password" placeholder="Минимум 6 символов">
-        </label>
+      <div class="auth-divider"><span>или по email</span></div>
+
+      <div id="onboardingAuth" data-auth-scope data-auth-mode="login">
+        <div class="auth-tabs" role="tablist" aria-label="Способ входа по email">
+          <button class="auth-tab" type="button" role="tab" data-auth-tab="login" aria-selected="true">Вход</button>
+          <button class="auth-tab" type="button" role="tab" data-auth-tab="register" aria-selected="false">Регистрация</button>
+        </div>
+
+        <form id="onboardingAuthForm" class="auth-form">
+          <label data-auth-name hidden>
+            Твоё имя
+            <input id="onboardingName" name="name" maxlength="24" autocomplete="name" placeholder="Например: Арслан">
+          </label>
+          <label>
+            Email
+            <input id="onboardingEmail" type="email" autocomplete="email" placeholder="you@example.com">
+          </label>
+          <label>
+            Пароль
+            <span class="password-field">
+              <input id="onboardingPassword" type="password" minlength="6" autocomplete="current-password" placeholder="Минимум 6 символов">
+              <button class="password-toggle" type="button" data-password-toggle="#onboardingPassword" aria-label="Показать пароль">Показать</button>
+            </span>
+          </label>
+          <button class="save glow-button" type="submit" data-auth-submit>Войти</button>
+          <button class="link-button" type="button" data-auth-reset>Забыл пароль?</button>
+        </form>
       </div>
-      <div class="auth-email-actions">
-        <button id="registerEmailBtn" class="save glow-button" type="button">Зарегистрироваться</button>
-        <button id="signInEmailBtn" class="secondary-auth-button" type="button">Войти</button>
-      </div>
-      <div class="auth-divider"><span>или без аккаунта</span></div>
-      <button class="save glow-button" type="submit">Начать локально</button>
-      <button class="close ghost" type="button" id="skipOnboardingBtn">Войти как Охотник</button>
+
       <p id="authMessage" class="auth-message" aria-live="polite"></p>
-    </form>
+
+      <div class="auth-divider"><span>или без аккаунта</span></div>
+
+      <form id="localStartForm" class="local-start-form">
+        <button class="secondary-auth-button" type="submit">Продолжить локально</button>
+      </form>
+      <button class="link-button" type="button" id="skipOnboardingBtn">Войти как Охотник</button>
+    </div>
   </dialog>
 
   <dialog id="accountModal">
-    <form method="dialog" class="account-modal-form">
-      <button class="close" type="button" value="cancel">×</button>
+    <div class="account-modal-body">
+      <button class="close" type="button" data-close-dialog aria-label="Закрыть">×</button>
+
       <div class="account-modal-head">
-        <span id="accountModalAvatar" class="account-avatar large">OH</span>
+        <span id="accountModalAvatar" class="account-avatar large" aria-hidden="true">ОХ</span>
         <div>
           <p class="eyebrow">Аккаунт и синхронизация</p>
           <h2 id="accountModalName">Локальный профиль</h2>
           <p id="accountModalEmail" class="item-sub">Данные хранятся на этом устройстве</p>
         </div>
       </div>
+
       <div class="sync-card">
-        <span id="syncIndicator" class="sync-dot"></span>
+        <span id="syncIndicator" class="sync-dot" aria-hidden="true"></span>
         <div>
           <b id="syncTitle">Локальное сохранение</b>
-          <small id="syncDescription">Подключи Google для облачной синхронизации</small>
+          <small id="syncDescription">Подключи аккаунт для облачной синхронизации</small>
         </div>
       </div>
-      <button id="accountGoogleBtn" class="google-auth-button" type="button"><span>G</span> Подключить Google</button>
-      <div id="accountEmailAuth" class="account-email-auth">
-        <div class="auth-divider"><span>или через email</span></div>
-        <div class="auth-email-fields">
-          <label>Email<input id="accountEmail" type="email" autocomplete="email" placeholder="you@example.com"></label>
-          <label>Пароль<input id="accountPassword" type="password" minlength="6" autocomplete="current-password" placeholder="Минимум 6 символов"></label>
+
+      <div id="accountAuthSection">
+        <button id="accountGoogleBtn" class="google-auth-button" type="button">
+          <span class="google-mark" aria-hidden="true">
+            <svg viewBox="0 0 18 18" width="18" height="18">
+              <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.71-1.57 2.68-3.89 2.68-6.62Z"/>
+              <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.02-3.7H.96v2.34A8.99 8.99 0 0 0 9 18Z"/>
+              <path fill="#FBBC05" d="M3.98 10.72a5.41 5.41 0 0 1 0-3.44V4.94H.96a8.99 8.99 0 0 0 0 8.12l3.02-2.34Z"/>
+              <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.59C13.46.89 11.43 0 9 0A8.99 8.99 0 0 0 .96 4.94l3.02 2.34C4.68 5.16 6.66 3.58 9 3.58Z"/>
+            </svg>
+          </span>
+          Подключить Google
+        </button>
+
+        <div class="auth-divider"><span>или по email</span></div>
+
+        <div id="accountAuth" data-auth-scope data-auth-mode="login">
+          <div class="auth-tabs" role="tablist" aria-label="Способ входа по email">
+            <button class="auth-tab" type="button" role="tab" data-auth-tab="login" aria-selected="true">Вход</button>
+            <button class="auth-tab" type="button" role="tab" data-auth-tab="register" aria-selected="false">Регистрация</button>
+          </div>
+
+          <form id="accountAuthForm" class="auth-form">
+            <label data-auth-name hidden>
+              Имя
+              <input id="accountName" maxlength="24" autocomplete="name" placeholder="Например: Арслан">
+            </label>
+            <label>
+              Email
+              <input id="accountEmail" type="email" autocomplete="email" placeholder="you@example.com">
+            </label>
+            <label>
+              Пароль
+              <span class="password-field">
+                <input id="accountPassword" type="password" minlength="6" autocomplete="current-password" placeholder="Минимум 6 символов">
+                <button class="password-toggle" type="button" data-password-toggle="#accountPassword" aria-label="Показать пароль">Показать</button>
+              </span>
+            </label>
+            <button class="save glow-button" type="submit" data-auth-submit>Войти</button>
+            <button class="link-button" type="button" data-auth-reset>Забыл пароль?</button>
+          </form>
         </div>
-        <div class="auth-email-actions">
-          <button id="accountRegisterEmailBtn" class="save" type="button">Регистрация</button>
-          <button id="accountSignInEmailBtn" class="secondary-auth-button" type="button">Войти</button>
-        </div>
+
         <p id="accountAuthMessage" class="auth-message" aria-live="polite"></p>
       </div>
-      <button id="signOutBtn" class="danger" type="button" hidden>Выйти из аккаунта</button>
-    </form>
+
+      <div id="accountSignedIn" class="account-signed-in" hidden>
+        <button id="switchGoogleBtn" class="secondary-auth-button" type="button">Войти в другой Google-аккаунт</button>
+        <button id="signOutBtn" class="danger" type="button">Выйти из аккаунта</button>
+      </div>
+    </div>
   </dialog>
 
   <input id="photoInput" type="file" accept="image/*" hidden>
-  <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore-compat.js"></script>
-  <script src="firebase-config.js"></script>
-  <script src="cloud.js"></script>
-  <script src="library.js"></script>
-  <script src="app.js"></script>
+
+  <script src="./firebase-config.js"></script>
+  <script type="module" src="./src/main.js"></script>
 </body>
 </html>
