@@ -1,7 +1,7 @@
 # Настройка Firebase для LevelUp
 
-Интеграция использует Firebase **compat API** и обычные `<script>`-теги —
-bundler и npm не нужны.
+Интеграция использует **модульный Firebase JS SDK**, который подгружается
+динамически с CDN прямо из `src/data/cloud.js` — bundler и npm не нужны.
 
 > **Важно:** конфигурация Firebase Web (`apiKey`, `projectId` и другие поля)
 > видна каждому посетителю сайта и сама по себе **не является секретом**.
@@ -18,27 +18,23 @@ bundler и npm не нужны.
    `firebase-config.js`. Не меняйте имя `window.LEVELUP_FIREBASE_CONFIG`.
 
 Пока обязательные поля пусты, `cloud.js` остаётся безопасно отключённым и
-выставляет `window.LevelUpCloud.configured === false`.
+возвращает `configured === false`.
 
-## 2. Подключите compat-скрипты
+## 2. Подключите конфиг
 
-Подключайте файлы в этом порядке, до кода приложения, который использует
-`window.LevelUpCloud`:
+Подключите конфигурацию **до** кода приложения, который использует Firebase:
 
 ```html
-<script defer src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js"></script>
-<script defer src="https://www.gstatic.com/firebasejs/11.10.0/firebase-auth-compat.js"></script>
-<script defer src="https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore-compat.js"></script>
-<script defer src="firebase-config.js"></script>
-<script defer src="cloud.js"></script>
+<script src="./firebase-config.js"></script>
+<script type="module" src="./src/main.js"></script>
 ```
 
-Все скрипты должны использовать одну и ту же версию Firebase. Если проект
-применяет Content Security Policy, разрешите загрузку скриптов с
-`https://www.gstatic.com` и необходимые Firebase-соединения.
+SDK загружается динамически из CDN (`gstatic.com`) при первом обращении.
+Если CDN недоступен или конфиг не заполнен, приложение продолжит работать
+без облачной синхронизации.
 
-Если CDN недоступен, отсутствует один из compat-скриптов или конфигурация не
-заполнена, приложение продолжит работать без облачной синхронизации.
+Если проект применяет Content Security Policy, разрешите загрузку скриптов с
+`https://www.gstatic.com` и необходимые Firebase-соединения.
 
 ## 3. Включите способы входа
 
@@ -47,14 +43,9 @@ bundler и npm не нужны.
 3. Включите провайдер **Google**.
 4. Выберите support email и сохраните настройки.
 
-`window.LevelUpCloud.signUpEmail(email, password, displayName)` создаёт
-пользователя, а `window.LevelUpCloud.signInEmail(email, password)` выполняет
-вход в существующий аккаунт. Firebase требует пароль длиной не менее 6
-символов.
-
-`window.LevelUpCloud.signInGoogle()` откроет popup Google. Браузер может
-заблокировать popup, если метод вызван не непосредственно из обработчика
-клика пользователя.
+Запросы `signInGoogle()`, `signUpEmail()`, `signInEmail()` и `resetPassword()`
+вызываются из обработчиков интерфейса и возвращают `Promise`. Вход через Google
+работает только при открытии по `http://localhost`.
 
 ## 4. Настройте Authorized domains
 
@@ -112,13 +103,33 @@ tokens**, а в консоли браузера перед загрузкой Fi
 - Кнопка Google всегда запрашивает `prompt: 'select_account'`, поэтому Google
   показывает список аккаунтов с пунктом «Другой аккаунт», а не входит молча
   в уже открытую сессию браузера.
-- Если браузер заблокировал popup, приложение автоматически переключается на
-  `signInWithRedirect` — вход завершается на отдельной странице Google.
-- Кнопка **«Войти в другой Google-аккаунт»** в окне аккаунта сначала выполняет
-  выход, затем запрашивает `prompt: 'login select_account'`: Google обязан
-  заново спросить логин и пароль.
+- Firebase SDK начинает грузиться при старте приложения, ещё до клика. Это
+  обязательное условие: popup должен открываться **тем же жестом**, что и клик.
+  Любое ожидание сети между кликом и `signInWithPopup` тратит user activation,
+  и браузер блокирует окно с `auth/popup-blocked`.
+- Если popup всё же заблокирован, приложение переключается на
+  `signInWithRedirect`. У этого вызова нет «успешного» завершения — при удаче
+  страница просто уходит на Google, поэтому переход ограничен сторожевым
+  таймером (6 с). Если за это время навигации не случилось, пользователь видит
+  просьбу разрешить всплывающие окна, а не бесконечное «Открываем вход…».
+- Закрытое или отменённое пользователем окно (`auth/popup-closed-by-user`,
+  `auth/cancelled-popup-request`) редирект **не** запускает: это осознанный
+  отказ, и уводить человека со страницы в таком случае нельзя.
+- Кнопка **«Войти в другой Google-аккаунт»** запрашивает
+  `prompt: 'login select_account'` — Google обязан заново спросить логин и
+  пароль. Предварительного `signOut` нет намеренно: он тратил жест клика и при
+  отмене окна оставлял пользователя вообще без входа.
 - При открытии страницы как `file://` вход через Google невозможен — приложение
   показывает понятное сообщение вместо молчаливой ошибки.
+
+### Если вход не открывается
+
+| Симптом | Причина | Что делать |
+|---|---|---|
+| `auth/unauthorized-domain` | домена нет в списке | добавить домен в Authorized domains |
+| Просьба разрешить всплывающие окна | popup и redirect заблокированы | разрешить popup для сайта в настройках браузера |
+| `auth/operation-not-allowed` | провайдер Google выключен | включить Google в Sign-in method |
+| `auth/missing-initial-state` | заблокированы сторонние куки | разрешить куки или входить через popup |
 
 ## Формат данных в Firestore
 
@@ -126,44 +137,44 @@ tokens**, а в консоли браузера перед загрузкой Fi
 в журнале `completions[дата][ключ]`, а не готовой суммой — это позволяет сливать
 данные двух устройств без задвоения. Фотографии в облако не выгружаются.
 
-## 6. API и события
+## 7. API и колбэки
 
-Доступный глобальный API:
+Доступные методы cloud-модуля (`src/data/cloud.js`):
 
 ```js
-window.LevelUpCloud.configured;
-window.LevelUpCloud.signUpEmail(email, password, displayName);
-window.LevelUpCloud.signInEmail(email, password);
-window.LevelUpCloud.signInGoogle();
-window.LevelUpCloud.signOut();
-window.LevelUpCloud.save(data);
-window.LevelUpCloud.getUser();
-window.LevelUpCloud.load();
+cloud.configured    // true если заполнен firebase-config.js
+cloud.user          // { uid, displayName, email, photoURL } или null
+cloud.canUseGoogle  // true если конфиг есть и страница открыта не как file://
+cloud.prewarm()     // начать загрузку SDK заранее (вызывается при старте)
+cloud.init()        // полная инициализация Firebase
+cloud.signInGoogle()
+cloud.switchGoogleAccount()
+cloud.signUpEmail(email, password, displayName)
+cloud.signInEmail(email, password)
+cloud.resetPassword(email)
+cloud.signOut()
+cloud.scheduleSave(data)
+cloud.flushSave()
 ```
 
-- `save(data)` объединяет частые вызовы (debounce 700 мс), записывает через
-  Firestore `{ merge: true }` и намеренно исключает верхнеуровневое поле
-  `photos` из отправляемых данных.
-- `load()` читает документ текущего пользователя `users/{uid}`.
-- При успешной авторизации данные загружаются автоматически.
-- Методы возвращают `Promise`; `getUser()` возвращает текущий Firebase User
-  или `null`.
+- `scheduleSave(data)` объединяет частые вызовы (debounce 800 мс) и пишет
+  документ целиком; фотографии в payload не попадают.
+- `flushSave()` немедленно отправляет отложенную запись — используется перед
+  выходом из аккаунта и при закрытии вкладки.
+- Данные не «загружаются» разово: активна живая подписка `onSnapshot`, поэтому
+  изменения с другого устройства приходят сами.
+- Все методы возвращают `Promise`.
 
-Модуль отправляет события на `window`:
-
-- `levelup:auth-change` — `detail: { user, configured }`;
-- `levelup:remote-data` — `detail: { data }`;
-- `levelup:sync-state` — `detail: { state, message }`.
-
-Пример подписки:
+Модуль не использует глобальные события — `createCloud()` принимает колбэки:
 
 ```js
-window.addEventListener("levelup:remote-data", function (event) {
-  if (event.detail.data) {
-    // Объединить облачные данные с локальным состоянием приложения.
-  }
+const cloud = createCloud({
+  config: window.LEVELUP_FIREBASE_CONFIG,
+  onAuthChange: ({ user, configured }) => {},  // user или null
+  onRemoteData: data => {},                    // данные из Firestore или null
+  onSyncState: ({ status, message }) => {}     // syncing | synced | error | ...
 });
 ```
 
-В `levelup:auth-change` поле `user` содержит безопасное для интерфейса
-представление (`uid`, `displayName`, `email`, `photoURL`) либо `null`.
+В `onAuthChange` поле `user` содержит безопасное для интерфейса представление
+(`uid`, `displayName`, `email`, `photoURL`) либо `null`.

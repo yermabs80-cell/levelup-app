@@ -56,6 +56,7 @@ const cloud = createCloud({
 });
 
 let photoTarget = '';
+let googleAuthPending = false;
 
 function addedQuestTitles() {
   return new Set(getState().quests.map(quest => quest.title.trim().toLowerCase()));
@@ -204,8 +205,23 @@ async function authenticateEmail(scope) {
   }
 }
 
-async function authenticateGoogle({ scope = 'onboarding', switchAccount = false } = {}) {
+const GOOGLE_BUTTONS = ['#googleSignInBtn', '#accountGoogleBtn', '#switchGoogleBtn'];
+
+function setGoogleButtonsBusy(busy) {
+  for (const selector of GOOGLE_BUTTONS) {
+    const button = $(selector);
+    if (button) button.disabled = busy;
+  }
+}
+
+/**
+ * Внутри нельзя ставить `await` до вызова cloud.signInGoogle(): жест клика
+ * должен дойти до window.open, иначе браузер заблокирует окно Google.
+ */
+function authenticateGoogle({ scope = 'onboarding', switchAccount = false } = {}) {
   const messageTarget = scope === 'account' ? '#accountAuthMessage' : '#authMessage';
+
+  if (googleAuthPending) return;
 
   if (!cloud.canUseGoogle) {
     setAuthMessage(
@@ -218,20 +234,29 @@ async function authenticateGoogle({ scope = 'onboarding', switchAccount = false 
     return;
   }
 
+  googleAuthPending = true;
+  setGoogleButtonsBusy(true);
   setAuthMessage(messageTarget, 'Открываем выбор аккаунта Google…');
 
-  try {
-    const result = switchAccount ? await cloud.switchGoogleAccount() : await cloud.signInGoogle();
-    if (result?.redirecting) {
-      setAuthMessage(messageTarget, 'Переходим на страницу входа Google…');
-      return;
-    }
-    setAuthMessage(messageTarget, '');
-    finishAuthSuccess('Google подключён');
-  } catch (error) {
-    console.error(error);
-    setAuthMessage(messageTarget, describeAuthError(error), 'error');
-  }
+  const attempt = switchAccount ? cloud.switchGoogleAccount() : cloud.signInGoogle();
+
+  attempt
+    .then(result => {
+      if (result?.redirecting) {
+        setAuthMessage(messageTarget, 'Переходим на страницу входа Google…');
+        return;
+      }
+      setAuthMessage(messageTarget, '');
+      finishAuthSuccess('Google подключён');
+    })
+    .catch(error => {
+      console.error(error);
+      setAuthMessage(messageTarget, describeAuthError(error), 'error');
+    })
+    .finally(() => {
+      googleAuthPending = false;
+      setGoogleButtonsBusy(false);
+    });
 }
 
 async function resetPassword(scope) {
@@ -449,6 +474,10 @@ function bindEvents() {
 }
 
 async function boot() {
+  // Греем SDK сразу: к моменту клика по «Войти через Google» сеть уже не нужна,
+  // и жест клика доходит до popup неизрасходованным.
+  cloud.prewarm();
+
   subscribe(handleStoreChange);
 
   setQuotaHandler(() => {
@@ -472,6 +501,11 @@ async function boot() {
   bindFocus();
   renderFocus();
 
+  // Обработчики уже привязаны, состояние поднято — можно поднимать Firebase.
+  // Не ждём здесь: инициализация идёт параллельно загрузке фотографий, чтобы
+  // к первому клику по кнопке Google вход был готов и не требовал await.
+  const cloudReady = cloud.init();
+
   await hydratePhotos(legacyPhotos);
   maybeShowOnboarding();
 
@@ -484,7 +518,7 @@ async function boot() {
     showToast('Прогресс перенесён в новый формат — опыт сохранён.', { type: 'success' });
   }
 
-  await cloud.init();
+  await cloudReady;
 
   if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
     navigator.serviceWorker.register('./sw.js').catch(error => console.warn('[sw]', error));

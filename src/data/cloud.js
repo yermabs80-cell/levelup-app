@@ -4,18 +4,40 @@ const SAVE_DEBOUNCE_MS = 800;
 const REDIRECT_FLAG = 'levelup-google-redirect';
 
 /**
+ * Если redirect не увёл страницу за это время, значит браузер его подавил
+ * (partitioned storage, sandbox). Молча висеть нельзя — показываем причину.
+ */
+const REDIRECT_STALL_MS = 6000;
+
+/** Popup нужно открывать тем же жестом, что и клик: эти коды — не отказ пользователя. */
+const REDIRECT_FALLBACK_CODES = new Set([
+  'auth/popup-blocked',
+  'auth/operation-not-supported-in-this-environment'
+]);
+
+let sdkPromise = null;
+
+/**
  * Firebase грузится динамически и только модульными точками входа.
  * Если CDN недоступен (офлайн, блокировка), приложение продолжает работать
  * локально — раньше три блокирующих <script> молча ломали облако целиком.
+ *
+ * Результат кэшируется: загрузка стартует заранее, чтобы к моменту клика
+ * по «Войти через Google» сеть уже не понадобилась.
  */
-async function loadFirebase() {
-  const [app, auth, firestore] = await Promise.all([
+function loadFirebase() {
+  sdkPromise ??= Promise.all([
     import(`${CDN}/firebase-app.js`),
     import(`${CDN}/firebase-auth.js`),
     import(`${CDN}/firebase-firestore.js`)
-  ]);
+  ])
+    .then(([app, auth, firestore]) => ({ app, auth, firestore }))
+    .catch(error => {
+      sdkPromise = null;
+      throw error;
+    });
 
-  return { app, auth, firestore };
+  return sdkPromise;
 }
 
 function hasCompleteConfig(config) {
@@ -54,8 +76,33 @@ export function createCloud({ config, onAuthChange, onRemoteData, onSyncState })
     return window.location.protocol === 'file:';
   }
 
-  async function ensureReady() {
-    if (state.ready) return true;
+  let readyPromise = null;
+
+  /** Прогрев: тянем SDK заранее, чтобы клик по кнопке не ждал сеть. */
+  function prewarm() {
+    if (!state.configured || isFileProtocol()) return Promise.resolve(false);
+    return loadFirebase().then(() => true, () => false);
+  }
+
+  function ensureReady() {
+    if (state.ready) return Promise.resolve(true);
+
+    readyPromise ??= bootstrap().then(
+      ok => {
+        // Неудача не должна залипать навсегда: после починки сети можно повторить.
+        if (!ok) readyPromise = null;
+        return ok;
+      },
+      error => {
+        readyPromise = null;
+        throw error;
+      }
+    );
+
+    return readyPromise;
+  }
+
+  async function bootstrap() {
     if (!state.configured) {
       emitSync('unavailable', 'Firebase не настроен');
       return false;
@@ -187,46 +234,90 @@ export function createCloud({ config, onAuthChange, onRemoteData, onSyncState })
     return provider;
   }
 
-  async function signInGoogle(options = {}) {
-    if (!(await ensureReady())) {
-      throw new Error(isFileProtocol()
-        ? 'Открой приложение по адресу http://localhost, а не как файл — Google не пускает вход со страницы file://.'
-        : 'Firebase недоступен. Проверь настройки и интернет.');
-    }
+  /**
+   * Popup обязан открыться тем же жестом, что и клик. Любой `await` до него
+   * (загрузка SDK по сети) стирает user activation, и браузер режет окно —
+   * именно из-за этого вход раньше всегда падал в `auth/popup-blocked`.
+   * Поэтому когда SDK уже прогрет, popup стартует синхронно.
+   */
+  function signInGoogle(options = {}) {
+    if (state.ready) return startGoogleSignIn(options);
 
-    const { signInWithPopup, signInWithRedirect } = state.sdk.auth;
+    return ensureReady().then(ok => {
+      if (!ok) {
+        throw new Error(isFileProtocol()
+          ? 'Открой приложение по адресу http://localhost, а не как файл — Google не пускает вход со страницы file://.'
+          : 'Firebase недоступен. Проверь настройки и интернет.');
+      }
+      return startGoogleSignIn(options);
+    });
+  }
+
+  function startGoogleSignIn(options) {
     const provider = buildGoogleProvider(options);
     emitSync('syncing', 'Открываем вход через Google');
 
-    try {
-      const result = await signInWithPopup(state.auth, provider);
-      return publicUser(result.user);
-    } catch (error) {
-      const fallbackCodes = [
-        'auth/popup-blocked',
-        'auth/popup-closed-by-user',
-        'auth/cancelled-popup-request',
-        'auth/operation-not-supported-in-this-environment'
-      ];
+    return state.sdk.auth.signInWithPopup(state.auth, provider)
+      .then(result => publicUser(result.user))
+      .catch(error => {
+        // Закрытое или отменённое окно — осознанное действие пользователя,
+        // уводить его редиректом в этом случае нельзя.
+        if (!REDIRECT_FALLBACK_CODES.has(error?.code)) {
+          // Иначе статус навсегда застревает на «Синхронизация…».
+          emitSync(state.user ? 'synced' : 'signed-out', '');
+          throw error;
+        }
+        return fallbackToRedirect(provider);
+      });
+  }
 
-      // Раньше этот путь был мёртвым: приложение показывало сообщение про
-      // редирект, но сам редирект никогда не запускался.
-      if (fallbackCodes.includes(error?.code)) {
-        sessionStorage.setItem(REDIRECT_FLAG, '1');
-        emitSync('syncing', 'Переходим на страницу входа Google');
-        await signInWithRedirect(state.auth, provider);
-        return { redirecting: true };
+  /**
+   * `signInWithRedirect` не резолвится при успехе — страница просто уходит на
+   * Google. Раньше код его дожидался, и интерфейс намертво вис на «Открываем
+   * вход…». Теперь навигация ограничена сторожевым таймером.
+   */
+  async function fallbackToRedirect(provider) {
+    sessionStorage.setItem(REDIRECT_FLAG, '1');
+    emitSync('syncing', 'Переходим на страницу входа Google');
+
+    const stalled = Symbol('stalled');
+    let watchdog = null;
+
+    try {
+      const outcome = await Promise.race([
+        state.sdk.auth.signInWithRedirect(state.auth, provider),
+        new Promise(resolve => {
+          watchdog = setTimeout(() => resolve(stalled), REDIRECT_STALL_MS);
+        })
+      ]);
+
+      if (outcome === stalled) {
+        sessionStorage.removeItem(REDIRECT_FLAG);
+        throw new Error(
+          'Браузер заблокировал и всплывающее окно, и переход на страницу Google. '
+          + 'Разреши всплывающие окна для этого сайта и попробуй ещё раз.'
+        );
       }
 
+      return { redirecting: true };
+    } catch (error) {
+      sessionStorage.removeItem(REDIRECT_FLAG);
       throw error;
+    } finally {
+      clearTimeout(watchdog);
     }
   }
 
-  /** Явная смена аккаунта: сначала выходим, затем просим Google спросить логин заново. */
-  async function switchGoogleAccount() {
-    if (state.ready && state.auth?.currentUser) {
-      await state.sdk.auth.signOut(state.auth);
-    }
+  /**
+   * Явная смена аккаунта. Предварительный signOut убран намеренно: он съедал
+   * жест клика, а при отмене окна оставлял пользователя вообще без входа.
+   * `prompt: 'login select_account'` и так заставляет Google спросить логин,
+   * а успешный вход просто заменяет текущего пользователя.
+   */
+  function switchGoogleAccount() {
+    // Незаписанные изменения уходят под старым uid: doc() берёт его синхронно.
+    clearTimeout(state.saveTimer);
+    flushSave();
     return signInGoogle({ forceCredentials: true });
   }
 
@@ -279,6 +370,7 @@ export function createCloud({ config, onAuthChange, onRemoteData, onSyncState })
       return state.configured && !isFileProtocol();
     },
     init: ensureReady,
+    prewarm,
     scheduleSave,
     flushSave,
     signInGoogle,
@@ -307,7 +399,11 @@ const AUTH_MESSAGES = {
   'auth/operation-not-allowed': 'Способ входа не включён в Firebase Authentication.',
   'auth/operation-not-supported-in-this-environment': 'Открой приложение по http://localhost, а не как файл.',
   'auth/invalid-api-key': 'Неверный apiKey в firebase-config.js.',
-  'auth/account-exists-with-different-credential': 'Этот email уже привязан к другому способу входа.'
+  'auth/account-exists-with-different-credential': 'Этот email уже привязан к другому способу входа.',
+  'auth/web-storage-unsupported': 'Браузер блокирует хранилище — разреши куки для этого сайта.',
+  'auth/missing-initial-state': 'Браузер блокирует сторонние куки. Разреши всплывающие окна и войди через popup.',
+  'auth/redirect-cancelled-by-user': 'Вход через Google отменён.',
+  'auth/timeout': 'Домен не отвечает. Проверь Authorized domains в Firebase.'
 };
 
 export function describeAuthError(error) {
