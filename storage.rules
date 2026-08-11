@@ -1,0 +1,35 @@
+rules_version = '2';
+
+// Ethos Tracker · правила доступа к Cloud Storage.
+//
+// Единственное, что приложение кладёт в Storage — фотографии героя:
+// users/{uid}/photos/avatar.jpg, before.jpg, after.jpg.
+// Снимки сжимаются в браузере до ~900 px и весят десятки килобайт,
+// поэтому лимит в 6 МиБ — это запас, а не рабочий размер.
+//
+// Скопировать в консоль: Firebase → Storage → Rules → Publish.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    match /users/{uid}/photos/{photoId} {
+      allow read: if isOwner(uid);
+
+      // request.resource существует только при create/update — на delete он null,
+      // поэтому проверки размера и типа нельзя вешать на общий write.
+      allow create, update: if isOwner(uid)
+        && request.resource.size < 6 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp)');
+
+      allow delete: if isOwner(uid);
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

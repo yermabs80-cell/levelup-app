@@ -29,9 +29,10 @@ function loadFirebase() {
   sdkPromise ??= Promise.all([
     import(`${CDN}/firebase-app.js`),
     import(`${CDN}/firebase-auth.js`),
-    import(`${CDN}/firebase-firestore.js`)
+    import(`${CDN}/firebase-firestore.js`),
+    import(`${CDN}/firebase-storage.js`)
   ])
-    .then(([app, auth, firestore]) => ({ app, auth, firestore }))
+    .then(([app, auth, firestore, storage]) => ({ app, auth, firestore, storage }))
     .catch(error => {
       sdkPromise = null;
       throw error;
@@ -63,6 +64,7 @@ export function createCloud({ config, onAuthChange, onRemoteData, onSyncState })
     sdk: null,
     auth: null,
     db: null,
+    storage: null,
     user: null,
     unsubscribeSnapshot: null,
     saveTimer: null,
@@ -117,6 +119,7 @@ export function createCloud({ config, onAuthChange, onRemoteData, onSyncState })
       const app = state.sdk.app.initializeApp(config);
       state.auth = state.sdk.auth.getAuth(app);
       state.db = state.sdk.firestore.getFirestore(app);
+      state.storage = state.sdk.storage.getStorage(app);
 
       await state.sdk.auth.setPersistence(state.auth, state.sdk.auth.browserLocalPersistence);
       state.ready = true;
@@ -359,6 +362,95 @@ export function createCloud({ config, onAuthChange, onRemoteData, onSyncState })
     return true;
   }
 
+  /**
+   * Имя пишется и в аккаунт Firebase, иначе на втором устройстве вход снова
+   * подставит старый displayName и переименование «откатится».
+   * updateProfile не поднимает onAuthStateChanged — оповещаем сами.
+   */
+  async function updateDisplayName(name) {
+    const clean = String(name || '').trim().slice(0, 24);
+    if (!clean) return { ok: false, reason: 'empty-name' };
+    if (!state.ready || !state.auth?.currentUser) return { ok: false, reason: 'signed-out' };
+
+    try {
+      await state.sdk.auth.updateProfile(state.auth.currentUser, { displayName: clean });
+      onAuthChange?.({ user: publicUser(state.auth.currentUser), configured: state.configured });
+      return { ok: true };
+    } catch (error) {
+      console.error('[cloud]', error);
+      return { ok: false, reason: 'failed', error };
+    }
+  }
+
+  // ── Фотографии ────────────────────────────────────────────────────────────
+  // Снимки лежат отдельно от документа состояния: base64 в Firestore съел бы
+  // лимит документа в 1 МиБ, поэтому JPEG уходит в Storage под тем же uid.
+
+  function photoPath(key) {
+    return `users/${state.user.uid}/photos/${key}.jpg`;
+  }
+
+  function photoRef(key) {
+    return state.sdk.storage.ref(state.storage, photoPath(key));
+  }
+
+  function canSyncPhotos() {
+    return Boolean(state.ready && state.user && state.storage);
+  }
+
+  async function uploadPhoto(key, dataURL) {
+    if (!canSyncPhotos()) return { ok: false, reason: 'signed-out' };
+
+    try {
+      // uploadString с 'data_url' сам разбирает префикс и ставит contentType,
+      // а именно по contentType правила Storage отличают картинку от чего угодно.
+      await state.sdk.storage.uploadString(photoRef(key), dataURL, 'data_url');
+      return { ok: true };
+    } catch (error) {
+      console.warn('[cloud] фото не загрузилось', error);
+      return { ok: false, reason: error?.code ?? 'failed' };
+    }
+  }
+
+  async function downloadPhoto(key) {
+    if (!canSyncPhotos()) return { ok: false, dataURL: null };
+
+    try {
+      const url = await state.sdk.storage.getDownloadURL(photoRef(key));
+      const response = await fetch(url);
+      if (!response.ok) return { ok: false, dataURL: null };
+
+      const blob = await response.blob();
+      const dataURL = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('Не удалось прочитать фото из облака'));
+        reader.readAsDataURL(blob);
+      });
+
+      return { ok: true, dataURL };
+    } catch (error) {
+      // object-not-found — это норма: фото просто ещё не заливали.
+      if (error?.code !== 'storage/object-not-found') {
+        console.warn('[cloud] фото не скачалось', error);
+      }
+      return { ok: false, dataURL: null };
+    }
+  }
+
+  async function deleteCloudPhoto(key) {
+    if (!canSyncPhotos()) return { ok: false };
+
+    try {
+      await state.sdk.storage.deleteObject(photoRef(key));
+      return { ok: true };
+    } catch (error) {
+      if (error?.code === 'storage/object-not-found') return { ok: true };
+      console.warn('[cloud] фото не удалилось', error);
+      return { ok: false };
+    }
+  }
+
   return {
     get configured() {
       return state.configured;
@@ -369,6 +461,9 @@ export function createCloud({ config, onAuthChange, onRemoteData, onSyncState })
     get canUseGoogle() {
       return state.configured && !isFileProtocol();
     },
+    get canSyncPhotos() {
+      return canSyncPhotos();
+    },
     init: ensureReady,
     prewarm,
     scheduleSave,
@@ -378,7 +473,11 @@ export function createCloud({ config, onAuthChange, onRemoteData, onSyncState })
     signUpEmail,
     signInEmail,
     resetPassword,
-    signOut
+    signOut,
+    updateDisplayName,
+    uploadPhoto,
+    downloadPhoto,
+    deleteCloudPhoto
   };
 }
 

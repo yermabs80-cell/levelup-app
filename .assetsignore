@@ -9,3 +9,6 @@ package-lock.json
 bun.lock
 bun.lockb
 wrangler.jsonc
+*.rules
+*.pdf
+*.example

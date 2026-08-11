@@ -9,6 +9,19 @@
 > корректные **Firestore Security Rules**. Никогда не добавляйте в клиентский
 > код ключи сервисного аккаунта или другие серверные секреты.
 
+## Что нужно сделать руками в консоли
+
+Три пункта, без которых облако либо не работает, либо открыто наружу.
+Кодом это не исправляется:
+
+| Где | Что вставить | Если не сделать |
+|---|---|---|
+| Authentication → Settings → **Authorized domains** | `levelup-app.yermabs80.workers.dev` и `localhost` | вход через Google падает с `auth/unauthorized-domain` |
+| Firestore Database → **Rules** | содержимое [`firestore.rules`](firestore.rules) → Publish | база доступна всем, кто открыл сайт |
+| Storage → **Rules** | содержимое [`storage.rules`](storage.rules) → Publish | Storage включён и открыт на чтение и запись |
+
+Домен указывается без `https://` и без пути.
+
 ## 1. Создайте проект и Web App
 
 1. Откройте [Firebase Console](https://console.firebase.google.com/).
@@ -51,37 +64,52 @@ SDK загружается динамически из CDN (`gstatic.com`) пр�
 
 В **Authentication → Settings → Authorized domains** добавьте:
 
-- домен production-сайта;
-- домены preview/staging-окружений, если они используются;
-- `localhost` для локальной разработки (если его ещё нет в списке).
+- `levelup-app.yermabs80.workers.dev` — домен воркера, на котором живёт сайт;
+- `localhost` для локальной разработки (если его ещё нет в списке);
+- домены preview/staging-окружений, если они используются.
 
 Указывайте только доменное имя, без протокола и пути. Для Firebase Hosting
 служебные домены проекта обычно добавляются автоматически.
 
+Это единственная причина ошибки при входе через Google на рабочем сайте: код
+обоих путей входа (popup и redirect) исправен, но Firebase пускает вход только
+с домена из этого списка. При переименовании воркера новый домен нужно добавить
+здесь **до** переключения, иначе вход сломается сразу после деплоя.
+
 ## 5. Создайте Firestore и установите правила
 
-Создайте базу в **Firestore Database**, выберите подходящий регион и замените
-правила следующими:
+Создайте базу в **Firestore Database**, выберите подходящий регион и вставьте в
+**Rules** содержимое файла [`firestore.rules`](firestore.rules) из корня
+репозитория, затем нажмите **Publish**.
 
-```text
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId} {
-      allow read, create, update, delete:
-        if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}
-```
+Коротко, что они делают: доступ к `users/{uid}` — только владельцу этого uid,
+всё остальное дерево закрыто явным `allow read, write: if false`.
 
-Опубликуйте правила. Они разрешают пользователю доступ только к документу
-`users/{его uid}` и не дают читать или изменять документы других
-пользователей. **Не используйте открытые тестовые правила в production:**
-Firebase Web config публичен, поэтому строгие Firestore Rules критичны.
+**Не оставляйте открытые тестовые правила:** Firebase Web config публичен,
+поэтому строгие правила — единственная реальная защита. Правила из режима
+«test mode» вдобавок истекают через 30 дней, после чего облако молча отваливается.
 
-Если позднее появятся подколлекции внутри `users/{userId}`, добавьте для них
-отдельные правила: правило документа не распространяется на подколлекции.
+Правила лежат в репозитории, а не только в консоли, чтобы их изменение было
+видно в диффе. Автоматически они не разворачиваются — публикация вручную.
+
+## 5a. Включите Storage и установите правила
+
+Фотографии героя (`avatar`, `before`, `after`) хранятся в Cloud Storage по пути
+`users/{uid}/photos/{ключ}.jpg`. В Firestore они не попадают: base64 съел бы
+лимит документа в 1 МиБ.
+
+1. **Storage → Get started**, регион тот же, что у Firestore.
+2. В **Rules** вставьте содержимое [`storage.rules`](storage.rules) → **Publish**.
+
+Правила разрешают владельцу читать и писать только свою папку, ограничивают
+размер файла 6 МиБ и требуют `contentType` вида `image/jpeg|png|webp`.
+Проверки размера и типа висят на `create, update`, а не на общем `write`:
+при удалении `request.resource` равен `null`, и такое правило запрещало бы
+удаление собственных файлов.
+
+Скачивание идёт через `getDownloadURL()` + `fetch`. У бакетов Firebase по
+умолчанию разрешён кросс-доменный `GET`; если в консоли браузера всё же
+появится ошибка CORS, настройте её через `gsutil cors set cors.json gs://<бакет>`.
 
 ## 6. Включите App Check (рекомендуется)
 
@@ -135,7 +163,13 @@ tokens**, а в консоли браузера перед загрузкой Fi
 
 Документ `users/{uid}` содержит поле `schemaVersion` (сейчас `2`). Опыт хранится
 в журнале `completions[дата][ключ]`, а не готовой суммой — это позволяет сливать
-данные двух устройств без задвоения. Фотографии в облако не выгружаются.
+данные двух устройств без задвоения.
+
+Фотографии в документ не попадают — они уходят в Cloud Storage (см. 5a).
+IndexedDB остаётся офлайн-кэшем: интерфейс всегда рисуется из него, а облако
+подтягивается при входе. Что уже залито, помнит `levelup-photo-sync` в
+localStorage — отпечаток снимка, а не сам снимок, чтобы каждая перезагрузка
+страницы не отправляла одни и те же файлы заново.
 
 ## 7. API и колбэки
 
@@ -145,6 +179,7 @@ tokens**, а в консоли браузера перед загрузкой Fi
 cloud.configured    // true если заполнен firebase-config.js
 cloud.user          // { uid, displayName, email, photoURL } или null
 cloud.canUseGoogle  // true если конфиг есть и страница открыта не как file://
+cloud.canSyncPhotos // true если вход выполнен и Storage поднят
 cloud.prewarm()     // начать загрузку SDK заранее (вызывается при старте)
 cloud.init()        // полная инициализация Firebase
 cloud.signInGoogle()
@@ -153,6 +188,10 @@ cloud.signUpEmail(email, password, displayName)
 cloud.signInEmail(email, password)
 cloud.resetPassword(email)
 cloud.signOut()
+cloud.updateDisplayName(name)      // updateProfile + оповещение интерфейса
+cloud.uploadPhoto(key, dataURL)    // users/{uid}/photos/{key}.jpg
+cloud.downloadPhoto(key)           // → { ok, dataURL }
+cloud.deleteCloudPhoto(key)
 cloud.scheduleSave(data)
 cloud.flushSave()
 ```
@@ -161,6 +200,9 @@ cloud.flushSave()
   документ целиком; фотографии в payload не попадают.
 - `flushSave()` немедленно отправляет отложенную запись — используется перед
   выходом из аккаунта и при закрытии вкладки.
+- `updateDisplayName()` нужен потому, что `updateProfile` не поднимает
+  `onAuthStateChanged`: без ручного оповещения интерфейс показывал бы старое имя
+  до перезагрузки, а второе устройство при входе вернуло бы прежний `displayName`.
 - Данные не «загружаются» разово: активна живая подписка `onSnapshot`, поэтому
   изменения с другого устройства приходят сами.
 - Все методы возвращают `Promise`.

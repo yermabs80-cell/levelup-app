@@ -30,7 +30,7 @@ import {
   setSyncStatus
 } from './ui/account.js';
 import { getActiveType, openEntryModal, resetEntryModal } from './ui/modals.js';
-import { clearPhotos, handlePhotoFile, hydratePhotos, removePhoto } from './ui/photos.js';
+import { clearPhotos, handlePhotoFile, hydratePhotos, removePhoto, setPhotoCloud, syncPhotosWithCloud } from './ui/photos.js';
 import { bindFocus, renderFocus } from './ui/focus.js';
 import {
   expandGroup,
@@ -90,15 +90,32 @@ function handleStoreChange(scopes, state) {
   if (all || scopes.has(storeEvents.FOCUS) || scopes.has(storeEvents.PROGRESS)) renderFocus();
 }
 
+/**
+ * Имя из аккаунта. У Google displayName есть всегда, у email-регистрации —
+ * если её заполнили; иначе берём часть адреса до @. Что угодно человеческое
+ * лучше безличного «Охотник», который раньше приезжал молча.
+ */
+function nameFromUser(user) {
+  const displayName = String(user.displayName || '').trim();
+  if (displayName) return displayName.slice(0, 24);
+
+  const local = String(user.email || '').split('@')[0].replace(/[._\-+]+/g, ' ').trim();
+  if (!local) return '';
+  return `${local[0].toUpperCase()}${local.slice(1)}`.slice(0, 24);
+}
+
 function handleAuthChange({ user }) {
   const state = getState();
 
   if (user) {
     if (!state.onboarded) {
-      if (user.displayName && state.name === DEFAULT_NAME) setName(user.displayName);
-      else markOnboarded();
+      const suggested = state.name === DEFAULT_NAME ? nameFromUser(user) : '';
+      if (!suggested || !setName(suggested).ok) markOnboarded();
     }
     closeDialog('#onboardingModal');
+    // Снимки, сделанные до входа, уезжают в облако; сделанные на другом
+    // устройстве — приезжают сюда.
+    syncPhotosWithCloud();
   }
 
   renderAccount({ state: getState(), cloud });
@@ -127,8 +144,12 @@ function maybeShowOnboarding() {
   const modal = $('#onboardingModal');
   if (!modal || modal.open) return;
 
-  const input = $('#onboardingName');
-  if (input) input.value = state.name === DEFAULT_NAME ? '' : state.name;
+  const known = state.name === DEFAULT_NAME ? '' : state.name;
+  for (const selector of ['#onboardingName', '#localName']) {
+    const input = $(selector);
+    if (input) input.value = known;
+  }
+
   modal.showModal();
 }
 
@@ -386,11 +407,23 @@ function bindEvents() {
     openDialog('#settings');
   });
 
-  $('#settingsForm')?.addEventListener('submit', event => {
+  $('#settingsForm')?.addEventListener('submit', async event => {
     event.preventDefault();
-    setName($('#nameInput')?.value);
+
+    const input = $('#nameInput');
+    const result = setName(input?.value);
+
+    if (!result.ok) {
+      showToast('Введи имя — оно видно в приложении', { type: 'error' });
+      input?.focus();
+      return;
+    }
+
     closeDialog('#settings');
     showToast('Имя обновлено', { type: 'success' });
+
+    // Без записи в аккаунт следующий вход на другом устройстве вернул бы старое имя.
+    if (cloud.user) await cloud.updateDisplayName(result.name);
   });
 
   $('#resetBtn')?.addEventListener('click', async () => {
@@ -433,18 +466,21 @@ function bindEvents() {
     authenticateEmail('account');
   });
 
-  $('#skipOnboardingBtn')?.addEventListener('click', () => {
-    markOnboarded();
-    closeDialog('#onboardingModal');
-  });
-
   $('#localStartForm')?.addEventListener('submit', event => {
     event.preventDefault();
-    const name = $('#onboardingName')?.value;
-    if (name?.trim()) setName(name);
-    else markOnboarded();
+
+    const input = $('#localName');
+    const result = setName(input?.value);
+
+    if (!result.ok) {
+      setAuthMessage('#authMessage', 'Введи имя — приложение будет обращаться к тебе по нему.', 'error');
+      input?.focus();
+      return;
+    }
+
+    setAuthMessage('#authMessage', '');
     closeDialog('#onboardingModal');
-    showToast('Профиль создан локально', { type: 'success' });
+    showToast(`Профиль создан локально · ${result.name}`, { type: 'success' });
   });
 
   $('#onboardingModal')?.addEventListener('cancel', event => {
@@ -494,6 +530,7 @@ async function boot() {
   const { corrupted, legacyPhotos, migratedFromV1 } = hydrate();
   rollOverDay();
 
+  setPhotoCloud(cloud);
   setAuthMode('#onboardingAuth', 'login');
   setAuthMode('#accountAuth', 'login');
   bindPasswordToggles();

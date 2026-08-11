@@ -1,0 +1,42 @@
+rules_version = '2';
+
+// Ethos Tracker · правила доступа к Firestore.
+//
+// Приложение пишет ровно один документ на пользователя: users/{uid}.
+// Всё остальное дерево закрыто наглухо — правила по умолчанию открывают базу
+// на 30 дней, и после их истечения приложение молча теряет облако,
+// поэтому режим "test mode" здесь недопустим.
+//
+// Скопировать в консоль: Firebase → Firestore Database → Rules → Publish.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // Снимок состояния целиком. Клиент отправляет его через setDoc(merge: false),
+    // поэтому create и update разрешены одинаково.
+    match /users/{uid} {
+      allow get, list: if isOwner(uid);
+
+      // Ограничение на объём: один документ Firestore и так не может быть больше
+      // 1 МиБ, но явный лимит на количество полей отсекает мусорные записи.
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().size() <= 40;
+
+      allow delete: if isOwner(uid);
+
+      // Подколлекции на будущее: тот же владелец, никакой иной доступ.
+      match /{document=**} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    // Явный запрет вместо «просто нет правила»: так намерение видно в диффе.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

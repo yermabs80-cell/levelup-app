@@ -6,7 +6,8 @@
   <meta name="theme-color" content="#070b16">
   <meta name="description" content="Ethos Tracker — квесты, ранги и четыре пути развития">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="./icon.svg">
+  <link rel="icon" href="./icons/icon-192.png" sizes="192x192" type="image/png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <link rel="stylesheet" href="./style.css">
@@ -78,6 +79,7 @@
       <button type="button" data-page="ascension">Ранги</button>
       <button type="button" data-page="stats">Характер</button>
       <button type="button" data-page="plan">План</button>
+      <button type="button" data-page="focus">Фокус</button>
       <button type="button" data-page="money">Финансы</button>
       <button type="button" data-page="library">База</button>
     </nav>
@@ -137,7 +139,7 @@
           <h2>До / После</h2>
         </div>
       </div>
-      <p class="item-sub photo-note">Фотографии хранятся только на этом устройстве и не попадают в облако.</p>
+      <p class="item-sub photo-note">Снимок сжимается прямо на устройстве. С аккаунтом фотографии синхронизируются через Firebase Storage, без аккаунта остаются только здесь.</p>
       <div id="photoGrid" class="photo-grid"></div>
     </section>
 
@@ -159,7 +161,7 @@
       <div class="section-head">
         <div>
           <p class="eyebrow">Главное на сегодня</p>
-          <h2>Фокус</h2>
+          <h2>Задачи дня</h2>
         </div>
         <button class="add" type="button" data-open="task">+ Задача</button>
       </div>
@@ -173,8 +175,10 @@
         <button class="add" type="button" data-open="schedule">+ Событие</button>
       </div>
       <div id="scheduleList" class="stack"></div>
+    </section>
 
-      <div class="section-head schedule-head">
+    <section class="page" id="focus" tabindex="-1">
+      <div class="section-head">
         <div>
           <p class="eyebrow">Помодоро и фон</p>
           <h2>Таймер фокуса</h2>
@@ -284,9 +288,10 @@
       <button class="close" type="button" data-close-dialog aria-label="Закрыть">×</button>
       <h2>Профиль</h2>
       <label>
-        Твоё имя
-        <input id="nameInput" maxlength="24" placeholder="Охотник" autocomplete="name">
+        Как тебя звать
+        <input id="nameInput" maxlength="24" placeholder="Например: Арслан" autocomplete="name" required>
       </label>
+      <p class="auth-hint">Это имя видно в приложении и записывается в профиль аккаунта.</p>
       <button class="save glow-button" type="submit">Сохранить</button>
       <button class="danger" id="resetBtn" type="button">Сбросить все данные</button>
     </form>
@@ -331,8 +336,8 @@
 
         <form id="onboardingAuthForm" class="auth-form">
           <label data-auth-name hidden>
-            Твоё имя
-            <input id="onboardingName" name="name" maxlength="24" autocomplete="name" placeholder="Например: Арслан">
+            Как тебя звать
+            <input id="onboardingName" name="name" maxlength="24" autocomplete="name" placeholder="Например: Арслан" required>
           </label>
           <label>
             Email
@@ -355,9 +360,13 @@
       <div class="auth-divider"><span>или без аккаунта</span></div>
 
       <form id="localStartForm" class="local-start-form">
-        <button class="secondary-auth-button" type="submit">Продолжить локально</button>
+        <label>
+          Как тебя звать
+          <input id="localName" name="name" maxlength="24" autocomplete="name" placeholder="Например: Арслан" required>
+        </label>
+        <button class="secondary-auth-button" type="submit">Продолжить без аккаунта</button>
       </form>
-      <button class="link-button" type="button" id="skipOnboardingBtn">Войти как Охотник</button>
+      <p class="auth-hint">Прогресс останется на этом устройстве. Аккаунт можно подключить позже — данные не потеряются.</p>
     </div>
   </dialog>
 
@@ -405,8 +414,8 @@
 
           <form id="accountAuthForm" class="auth-form">
             <label data-auth-name hidden>
-              Имя
-              <input id="accountName" maxlength="24" autocomplete="name" placeholder="Например: Арслан">
+              Как тебя звать
+              <input id="accountName" maxlength="24" autocomplete="name" placeholder="Например: Арслан" required>
             </label>
             <label>
               Email

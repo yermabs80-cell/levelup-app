@@ -1,4 +1,4 @@
-const CACHE = 'ethos-v11';
+const CACHE = 'ethos-v12';
 
 const PRECACHE = [
   './',
@@ -6,6 +6,9 @@ const PRECACHE = [
   './style.css',
   './manifest.webmanifest',
   './icon.svg',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/icon-maskable-512.png',
   './firebase-config.js',
   './src/main.js',
   './src/core/constants.js',

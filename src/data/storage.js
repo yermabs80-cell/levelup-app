@@ -72,6 +72,23 @@ export function persistState(state) {
   return writeRaw(STORAGE_KEYS.data, JSON.stringify(state));
 }
 
+/** Мелкие служебные записи (отметки синхронизации) — тем же безопасным путём. */
+export function readJson(key, fallback = null) {
+  const raw = readRaw(key);
+  if (!raw) return fallback;
+
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export function writeJson(key, value) {
+  return writeRaw(key, JSON.stringify(value));
+}
+
 export function readOnboardedFlag() {
   return readRaw(STORAGE_KEYS.onboarded) === '1';
 }
@@ -97,6 +114,7 @@ export function clearStoredState() {
   try {
     store.removeItem(STORAGE_KEYS.data);
     store.removeItem(STORAGE_KEYS.onboarded);
+    store.removeItem(STORAGE_KEYS.photoSync);
   } catch {
     memoryFallback.clear();
   }

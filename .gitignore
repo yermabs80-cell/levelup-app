@@ -7,3 +7,4 @@ Thumbs.db
 .env.*
 .idea/
 .vscode/
+package-lock.json

@@ -1,4 +1,4 @@
-import { COLLECTIONS, DEFAULT_NAME, FOCUS_XP } from '../core/constants.js';
+import { COLLECTIONS, FOCUS_XP } from '../core/constants.js';
 import { createSeed, normalize, questKey, todayKey } from '../core/schema.js';
 import { mergeStates } from '../core/merge.js';
 import {
@@ -97,12 +97,21 @@ export function resetAll() {
   commit([storeEvents.ALL], { sync: true });
 }
 
+/**
+ * Пустое имя — ошибка валидации, а не повод подставить DEFAULT_NAME.
+ * Молчаливый фолбэк как раз и приводил к тому, что у всех был «Охотник»:
+ * поле в онбординге не было обязательным, и незаполненное значение
+ * превращалось в имя, которое потом уезжало в профиль Firebase.
+ */
 export function setName(name) {
-  const clean = String(name || '').trim().slice(0, 24) || DEFAULT_NAME;
+  const clean = String(name || '').trim().slice(0, 24);
+  if (!clean) return { ok: false, reason: 'empty-name' };
+
   state.name = clean;
   state.onboarded = true;
   writeOnboardedFlag(true);
   commit([storeEvents.PROFILE]);
+  return { ok: true, name: clean };
 }
 
 export function markOnboarded() {

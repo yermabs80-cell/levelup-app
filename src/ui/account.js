@@ -92,7 +92,14 @@ export function setAuthMode(scope, mode) {
   }
 
   const nameField = root.querySelector('[data-auth-name]');
-  if (nameField) nameField.hidden = mode !== 'register';
+  if (nameField) {
+    nameField.hidden = mode !== 'register';
+
+    // required на скрытом поле ломает вход: браузер отказывается отправлять форму
+    // и пытается сфокусировать невидимый input, не показав никакого сообщения.
+    const nameInput = nameField.querySelector('input');
+    if (nameInput) nameInput.required = mode === 'register';
+  }
 
   const submit = root.querySelector('[data-auth-submit]');
   if (submit) submit.textContent = mode === 'register' ? 'Создать аккаунт' : 'Войти';

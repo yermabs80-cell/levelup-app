@@ -1,13 +1,49 @@
-import { MAX_PHOTO_BYTES } from '../core/constants.js';
+import { MAX_PHOTO_BYTES, STORAGE_KEYS } from '../core/constants.js';
 import { deletePhoto, loadAllPhotos, savePhoto } from '../data/photos.js';
+import { readJson, writeJson } from '../data/storage.js';
 import { $ } from './dom.js';
 import { html, setHtml } from './html.js';
 import { askConfirm, showToast } from './feedback.js';
 
 const photos = { avatar: null, before: null, after: null };
+const PHOTO_KEYS = Object.keys(photos);
+
+/**
+ * Облако подключается извне, а не импортом: photos.js рисует разметку и не должен
+ * знать, как создаётся клиент Firebase.
+ */
+let cloud = null;
+let syncing = null;
+let hydrated = false;
+
+export function setPhotoCloud(instance) {
+  cloud = instance;
+}
 
 export function getPhoto(key) {
   return photos[key] ?? null;
+}
+
+/**
+ * Отпечаток снимка, а не сам снимок: он решает, нужна ли повторная заливка.
+ * Без него каждая перезагрузка страницы отправляла бы все фото заново.
+ */
+function fingerprint(dataURL) {
+  return `${dataURL.length}:${dataURL.slice(-24)}`;
+}
+
+function syncedMarks(uid) {
+  return readJson(STORAGE_KEYS.photoSync, {})?.[uid] ?? {};
+}
+
+function rememberMark(uid, key, mark) {
+  const all = readJson(STORAGE_KEYS.photoSync, {}) ?? {};
+  const forUser = { ...(all[uid] ?? {}) };
+
+  if (mark) forUser[key] = mark;
+  else delete forUser[key];
+
+  writeJson(STORAGE_KEYS.photoSync, { ...all, [uid]: forUser });
 }
 
 export async function hydratePhotos(legacyPhotos) {
@@ -25,6 +61,60 @@ export async function hydratePhotos(legacyPhotos) {
   }
 
   renderPhotos();
+  hydrated = true;
+
+  // Вход мог завершиться раньше, чем поднялся IndexedDB: тогда синхронизация
+  // ушла бы вхолостую, решив, что локально ничего нет.
+  syncPhotosWithCloud();
+}
+
+/**
+ * Двусторонний перенос при входе в аккаунт:
+ * есть локально, но не залито — заливаем (это и есть миграция уже сделанных снимков);
+ * локально пусто — забираем то, что залили с другого устройства.
+ * IndexedDB остаётся тем, из чего рисуется интерфейс, в том числе офлайн.
+ */
+export function syncPhotosWithCloud() {
+  if (!hydrated || !cloud?.canSyncPhotos) return Promise.resolve();
+  // Повторный вызов во время работы (снапшот + смена авторизации) не должен
+  // запускать вторую заливку тех же файлов.
+  syncing ??= runPhotoSync()
+    .catch(error => console.warn('[photos] синхронизация не завершилась', error))
+    .finally(() => {
+      syncing = null;
+    });
+  return syncing;
+}
+
+async function runPhotoSync() {
+  const uid = cloud.user?.uid;
+  if (!uid) return;
+
+  const marks = syncedMarks(uid);
+  let pulled = false;
+
+  for (const key of PHOTO_KEYS) {
+    const local = photos[key];
+
+    if (local) {
+      const mark = fingerprint(local);
+      if (marks[key] === mark) continue;
+
+      const result = await cloud.uploadPhoto(key, local);
+      if (result.ok) rememberMark(uid, key, mark);
+      continue;
+    }
+
+    const remote = await cloud.downloadPhoto(key);
+    if (!remote.ok || !remote.dataURL) continue;
+
+    await savePhoto(key, remote.dataURL);
+    photos[key] = remote.dataURL;
+    rememberMark(uid, key, fingerprint(remote.dataURL));
+    pulled = true;
+  }
+
+  if (pulled) renderPhotos();
 }
 
 function compressImage(file, maxSize = 900, quality = 0.82) {
@@ -140,6 +230,13 @@ export async function handlePhotoFile(file, target) {
     photos[target] = dataURL;
     renderPhotos();
     showToast('Фотография сохранена', { type: 'success' });
+
+    // Заливка идёт после отрисовки: интерфейс не должен ждать сеть.
+    if (cloud?.canSyncPhotos) {
+      const uid = cloud.user?.uid;
+      const upload = await cloud.uploadPhoto(target, dataURL);
+      if (upload.ok && uid) rememberMark(uid, target, fingerprint(dataURL));
+    }
   } catch (error) {
     console.error(error);
     showToast('Не удалось обработать изображение', { type: 'error' });
@@ -156,13 +253,27 @@ export async function removePhoto(target) {
   await deletePhoto(target);
   photos[target] = null;
   renderPhotos();
+
+  const uid = cloud?.user?.uid;
+  if (cloud?.canSyncPhotos) {
+    await cloud.deleteCloudPhoto(target);
+    if (uid) rememberMark(uid, target, null);
+  }
+
   showToast('Фотография удалена');
 }
 
 export function clearPhotos() {
-  for (const key of Object.keys(photos)) {
+  const uid = cloud?.user?.uid;
+
+  for (const key of PHOTO_KEYS) {
     deletePhoto(key);
     photos[key] = null;
+    if (cloud?.canSyncPhotos) {
+      cloud.deleteCloudPhoto(key);
+      if (uid) rememberMark(uid, key, null);
+    }
   }
+
   renderPhotos();
 }

@@ -6,7 +6,8 @@ export const MAX_PHOTO_BYTES = 15 * 1024 * 1024;
 
 export const STORAGE_KEYS = {
   data: 'levelup-data',
-  onboarded: 'levelup-onboarded'
+  onboarded: 'levelup-onboarded',
+  photoSync: 'levelup-photo-sync'
 };
 
 export const STATS = [
